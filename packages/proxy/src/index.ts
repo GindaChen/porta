@@ -11,6 +11,7 @@ import { createAdaptorServer } from "@hono/node-server";
 
 import { discovery } from "./routing.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
+import { initAffinityCache } from "./routing.js";
 import { registerModelRoutes } from "./routes/models.js";
 import { registerWorkspaceRoutes } from "./routes/workspaces.js";
 import { registerFileRoutes } from "./routes/files.js";
@@ -70,6 +71,8 @@ registerConversationRoutes(app);
 registerModelRoutes(app);
 registerWorkspaceRoutes(app);
 registerFileRoutes(app);
+// Load persisted affinity cache before registering routes
+initAffinityCache();
 registerSearchRoutes(app);
 registerRpcPassthroughRoutes(app);
 registerSettingsRoutes(app);

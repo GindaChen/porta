@@ -2,9 +2,13 @@
  * Conversation-aware RPC routing.
  *
  * Routes RPC calls to the correct Language Server based on conversation
- * ownership (affinity). The affinity cache maps cascadeId → workspaceId.
+ * ownership (affinity). The affinity cache maps cascadeId → workspaceId
+ * and is persisted to disk so it survives proxy restarts.
  */
 
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { LSDiscovery, type LSInstance } from "./discovery.js";
 import { RPCClient, RPCError } from "./rpc.js";
 
@@ -16,8 +20,65 @@ export const rpc = new RPCClient(discovery);
  * Conversation → owning workspaceId affinity cache.
  * Built from conversation metadata (workspaces[0].workspaceFolderAbsoluteUri)
  * and used to route RPC calls to the correct LS instance.
+ *
+ * Persists to ~/.porta/affinity-cache.json so known affinities survive
+ * proxy restarts, eliminating the expensive GetAllCascadeTrajectories
+ * discovery RPC for previously-seen conversations.
  */
-export const conversationAffinity = new Map<string, string>(); // cascadeId → workspaceId
+const PORTA_DIR = join(homedir(), ".porta");
+const AFFINITY_FILE = join(PORTA_DIR, "affinity-cache.json");
+
+let _savePending = false;
+
+class PersistentMap extends Map<string, string> {
+  set(key: string, value: string): this {
+    super.set(key, value);
+    this._scheduleSave();
+    return this;
+  }
+
+  delete(key: string): boolean {
+    const result = super.delete(key);
+    if (result) this._scheduleSave();
+    return result;
+  }
+
+  private _scheduleSave(): void {
+    if (_savePending) return;
+    _savePending = true;
+    // Batch writes — save on next tick
+    queueMicrotask(() => {
+      _savePending = false;
+      try {
+        mkdirSync(PORTA_DIR, { recursive: true });
+        const obj: Record<string, string> = {};
+        for (const [k, v] of this) obj[k] = v;
+        writeFileSync(AFFINITY_FILE, JSON.stringify(obj) + "\n", "utf-8");
+      } catch {
+        // Non-critical — cache is best-effort
+      }
+    });
+  }
+}
+
+export const conversationAffinity = new PersistentMap();
+
+/** Load persisted affinity cache from disk. Call once at startup. */
+export function initAffinityCache(): void {
+  try {
+    const raw = readFileSync(AFFINITY_FILE, "utf-8");
+    const obj = JSON.parse(raw) as Record<string, string>;
+    let count = 0;
+    for (const [k, v] of Object.entries(obj)) {
+      // Use Map.prototype.set to avoid triggering save on load
+      Map.prototype.set.call(conversationAffinity, k, v);
+      count++;
+    }
+    console.log(`[affinity] loaded ${count} cached affinities`);
+  } catch {
+    console.log("[affinity] no cached affinities (first run)");
+  }
+}
 
 /** Convert a workspace URI to the LS workspaceId format. */
 export function uriToWorkspaceId(uri: string): string {
