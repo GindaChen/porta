@@ -1,55 +1,112 @@
 /**
- * Hook for browser push notifications.
+ * In-app notification system.
  *
- * - Requests permission on first call to `requestPermission()`
- * - `notify()` fires a notification if permission is granted
- * - Tracks conversation status changes to auto-notify when a run finishes
+ * Tracks conversation status changes and shows an in-app toast + audio chime
+ * when a task finishes running. Works on ALL browsers and protocols (no HTTPS
+ * required, unlike browser Notification API).
+ *
+ * Also attempts browser Notification API if available (desktop Chrome, etc).
  */
 
 import { useRef, useCallback, useEffect, useState } from "react";
 import type { ConversationEntry } from "./useConversations";
 
-type Permission = "default" | "granted" | "denied";
-
-const isSupported =
+// Browser Notification API (only available on HTTPS or localhost)
+const browserNotifSupported =
   typeof window !== "undefined" && "Notification" in window;
 
+export interface Toast {
+  id: string;
+  title: string;
+  body: string;
+  timestamp: number;
+}
+
+// Simple chime via Web Audio API (works everywhere, no file needed)
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.1); // D6
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch {
+    // Web Audio not available
+  }
+}
+
 export function useNotifications(conversations: ConversationEntry[]) {
-  const [permission, setPermission] = useState<Permission>(
-    isSupported ? Notification.permission : "denied",
-  );
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Track which conversations were running on the previous poll
   const prevRunningRef = useRef<Set<string>>(new Set());
+  // Skip the first poll (initial load) to avoid false positives
+  const initializedRef = useRef(false);
 
-  const requestPermission = useCallback(async () => {
-    if (!isSupported) return "denied" as Permission;
+  // Browser notification permission
+  const [browserPermission, setBrowserPermission] = useState<string>(
+    browserNotifSupported ? Notification.permission : "unsupported",
+  );
+
+  const requestBrowserPermission = useCallback(async () => {
+    if (!browserNotifSupported) return "unsupported";
     const result = await Notification.requestPermission();
-    setPermission(result);
+    setBrowserPermission(result);
     return result;
   }, []);
 
-  const notify = useCallback(
-    (title: string, options?: NotificationOptions) => {
-      if (!isSupported || permission !== "granted") return;
-      try {
-        const n = new Notification(title, {
-          icon: "/favicon.ico",
-          badge: "/favicon.ico",
-          ...options,
-        });
-        // Auto-close after 8 seconds
-        setTimeout(() => n.close(), 8000);
-      } catch {
-        // Notifications can fail in some contexts (e.g. insecure HTTP)
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Show an in-app toast + optional browser notification
+  const showNotification = useCallback(
+    (title: string, body: string, convId: string) => {
+      // In-app toast (always works)
+      const toast: Toast = {
+        id: `${convId}-${Date.now()}`,
+        title,
+        body,
+        timestamp: Date.now(),
+      };
+      setToasts((prev) => [...prev, toast]);
+
+      // Auto-dismiss after 6 seconds
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      }, 6000);
+
+      // Play chime
+      playChime();
+
+      // Browser notification (if available and granted)
+      if (browserNotifSupported && Notification.permission === "granted") {
+        try {
+          const n = new Notification(title, {
+            body,
+            icon: "/favicon.ico",
+            tag: `porta-done-${convId}`,
+          });
+          setTimeout(() => n.close(), 8000);
+        } catch {
+          // Ignore
+        }
       }
     },
-    [permission],
+    [],
   );
 
   // Auto-detect when conversations finish running
   useEffect(() => {
-    if (permission !== "granted") return;
     if (conversations.length === 0) return;
 
     const currentRunning = new Set<string>();
@@ -59,36 +116,33 @@ export function useNotifications(conversations: ConversationEntry[]) {
       }
     }
 
+    // Skip notification on first poll (avoid false "done" on page load)
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      prevRunningRef.current = currentRunning;
+      return;
+    }
+
     // Find conversations that WERE running but are now done
     const prevRunning = prevRunningRef.current;
     for (const id of prevRunning) {
       if (!currentRunning.has(id)) {
-        // This conversation just finished
         const conv = conversations.find((c) => c.id === id);
         if (conv) {
           const title = conv.summary.summary || "Conversation";
-          notify("✅ Task Complete", {
-            body: title,
-            tag: `porta-done-${id}`, // Prevent duplicate notifications
-          });
+          showNotification("✅ Task Complete", title, id);
         }
       }
     }
 
     prevRunningRef.current = currentRunning;
-  }, [conversations, permission, notify]);
-
-  // Auto-request permission on first load if not yet decided
-  useEffect(() => {
-    if (isSupported && permission === "default") {
-      requestPermission();
-    }
-  }, [permission, requestPermission]);
+  }, [conversations, showNotification]);
 
   return {
-    isSupported,
-    permission,
-    requestPermission,
-    notify,
+    toasts,
+    dismissToast,
+    browserNotifSupported,
+    browserPermission,
+    requestBrowserPermission,
   };
 }

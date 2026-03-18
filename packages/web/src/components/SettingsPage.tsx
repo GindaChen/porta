@@ -132,33 +132,32 @@ export function SettingsPage() {
             Get notified when a task finishes running.
           </p>
 
-          {!notificationsSupported ? (
-            <p
-              className="settings-section-desc"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              Notifications are not supported in this browser.
-            </p>
-          ) : notifPermission === "granted" ? (
-            <div className="settings-notif-status settings-notif-granted">
-              <span>✅</span>
-              <span>Notifications enabled</span>
-            </div>
-          ) : notifPermission === "denied" ? (
-            <div className="settings-notif-status settings-notif-denied">
-              <span>🚫</span>
-              <span>
-                Notifications blocked. Enable them in your browser/device
-                settings for this site.
-              </span>
-            </div>
-          ) : (
+          <div className="settings-notif-status settings-notif-granted">
+            <span>🔔</span>
+            <span>In-app alerts active (toast + sound)</span>
+          </div>
+
+          {notificationsSupported && notifPermission !== "granted" && notifPermission !== "denied" && (
             <button
               className="settings-save-btn"
               onClick={handleEnableNotifications}
+              style={{ marginTop: 4 }}
             >
-              Enable Notifications
+              Also Enable Push Notifications
             </button>
+          )}
+
+          {notificationsSupported && notifPermission === "granted" && (
+            <div className="settings-notif-status settings-notif-granted" style={{ marginTop: 4 }}>
+              <span>✅</span>
+              <span>Push notifications also enabled</span>
+            </div>
+          )}
+
+          {!notificationsSupported && (
+            <p className="settings-section-desc" style={{ color: "var(--text-tertiary)", marginTop: 4, fontSize: 11 }}>
+              Push notifications require HTTPS. In-app alerts work over HTTP.
+            </p>
           )}
         </section>
 

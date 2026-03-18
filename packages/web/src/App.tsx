@@ -13,6 +13,7 @@ import { ChatInput } from "./components/ChatInput";
 import { WorkspaceSelector } from "./components/WorkspaceSelector";
 import { SettingsPage } from "./components/SettingsPage";
 import { TabBar } from "./components/TabBar";
+import { ToastContainer } from "./components/ToastContainer";
 import { IconFolder } from "./components/Icons";
 import { useConversations } from "./hooks/useConversations";
 import { usePolling } from "./hooks/usePolling";
@@ -100,7 +101,7 @@ function ChatView() {
   const { data: health } = usePolling<HealthResponse>(api.health, 30_000);
 
   // ── Notifications: alert when a task finishes ──
-  useNotifications(conversations);
+  const { toasts, dismissToast } = useNotifications(conversations);
 
   // ── Hooks ──
   const { workspaces, currentWorkspaceUri } = useWorkspaces(
@@ -263,6 +264,7 @@ function ChatView() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <Sidebar
         conversations={conversations}
         activeId={activeId}
