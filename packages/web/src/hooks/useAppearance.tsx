@@ -32,6 +32,12 @@ export interface AppearanceSettings {
   swiperVisible: boolean;
   /** Whether to show all projects in swiper (vs current only) */
   swiperAllProjects: boolean;
+  /** Active chip glow spread in px (0 = off) */
+  swiperActiveGlow: number;
+  /** Active chip border opacity (0.2 – 1.0) */
+  swiperActiveBorderOpacity: number;
+  /** Per-project color overrides: project name → hex color */
+  projectColorOverrides: Record<string, string>;
   /** Message body font size in px */
   messageFontSize: number;
   /** Code font size in px */
@@ -52,6 +58,9 @@ export const DEFAULTS: AppearanceSettings = {
   swiperMaxVisible: 8,
   swiperVisible: true,
   swiperAllProjects: false,
+  swiperActiveGlow: 8,
+  swiperActiveBorderOpacity: 0.6,
+  projectColorOverrides: {},
   messageFontSize: 13.5,
   codeFontSize: 12,
   borderRadius: 10,
@@ -179,6 +188,8 @@ function applyToDOM(s: AppearanceSettings) {
   el.setProperty("--swiper-chip-height", `${s.swiperChipHeight}px`);
   el.setProperty("--swiper-max-visible", `${s.swiperMaxVisible}`);
   el.setProperty("--swiper-display", s.swiperVisible ? "block" : "none");
+  el.setProperty("--swiper-active-glow", `${s.swiperActiveGlow}px`);
+  el.setProperty("--swiper-active-border-opacity", `${s.swiperActiveBorderOpacity}`);
 
   // Text
   el.setProperty("--msg-font-size", `${s.messageFontSize}px`);

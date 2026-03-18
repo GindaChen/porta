@@ -36,7 +36,15 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-function projectColor(name: string): { bg: string; border: string; dot: string } {
+function projectColor(name: string, overrideHex?: string): { bg: string; border: string; dot: string } {
+  if (overrideHex) {
+    // Convert hex to HSL-ish inline styles
+    return {
+      bg: `${overrideHex}24`,       // hex + ~14% alpha
+      border: `${overrideHex}59`,   // hex + ~35% alpha
+      dot: overrideHex,
+    };
+  }
   const hue = PROJECT_HUES[hashString(name) % PROJECT_HUES.length];
   return {
     bg: `hsla(${hue}, 60%, 50%, 0.14)`,
@@ -149,18 +157,32 @@ function useLongPressMenu() {
 function ContextMenu({
   menu,
   isPinned,
+  allConversations,
   onPin,
   onUnpin,
   onDismiss,
 }: {
   menu: ContextMenuState;
   isPinned: boolean;
+  allConversations: ConversationEntry[];
   onPin: (id: string) => void;
   onUnpin: (id: string) => void;
   onDismiss: () => void;
 }) {
+  // Compute project stats
+  const projectConvs = allConversations.filter(
+    (c) => extractProjectName(c) === menu.project,
+  );
+  const runningCount = projectConvs.filter(
+    (c) => c.summary.status === "CASCADE_RUN_STATUS_RUNNING",
+  ).length;
+  const conv = allConversations.find((c) => c.id === menu.convId);
+  const lastActive = conv?.summary.lastModifiedTime
+    ? relativeTimeShort(conv.summary.lastModifiedTime) + " ago"
+    : "";
+
   // Position: try to keep on-screen
-  const menuY = Math.max(8, menu.y - 120);
+  const menuY = Math.max(8, menu.y - 160);
   const menuX = Math.min(menu.x - 20, window.innerWidth - 270);
 
   return createPortal(
@@ -175,6 +197,14 @@ function ContextMenu({
         {menu.project !== "Others" && (
           <div className="chip-context-menu-title" style={{ opacity: 0.5, paddingTop: 0, fontSize: 10 }}>
             {menu.project}
+            {" · "}
+            {projectConvs.length} conversation{projectConvs.length !== 1 ? "s" : ""}
+            {runningCount > 0 && ` · ${runningCount} running`}
+          </div>
+        )}
+        {lastActive && (
+          <div className="chip-context-menu-title" style={{ opacity: 0.35, paddingTop: 0, fontSize: 10 }}>
+            Last active: {lastActive}
           </div>
         )}
         <div className="chip-context-menu-divider" />
@@ -288,7 +318,8 @@ export function ChatSwiper({
           if (isPinned) statusClass += " pinned";
 
           const project = extractProjectName(conv);
-          const colors = showProjectColors ? projectColor(project) : null;
+          const overrideHex = settings.projectColorOverrides?.[project];
+          const colors = showProjectColors ? projectColor(project, overrideHex) : null;
 
           const chipStyle: React.CSSProperties = colors
             ? {

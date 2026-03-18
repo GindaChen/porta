@@ -329,9 +329,83 @@ export function SettingsPage() {
                   unit=""
                   onChange={(v) => updateAppearance("swiperMaxVisible", v)}
                 />
+                <SliderControl
+                  label="Active glow"
+                  value={appearance.swiperActiveGlow}
+                  min={0}
+                  max={20}
+                  onChange={(v) => updateAppearance("swiperActiveGlow", v)}
+                />
+                <SliderControl
+                  label="Active border"
+                  value={Math.round(appearance.swiperActiveBorderOpacity * 100)}
+                  min={20}
+                  max={100}
+                  unit="%"
+                  onChange={(v) => updateAppearance("swiperActiveBorderOpacity", v / 100)}
+                />
               </>
             )}
           </div>
+
+          {/* Per-project color overrides */}
+          {appearance.swiperVisible && appearance.swiperAllProjects && (
+            <div className="appearance-group">
+              <label className="settings-label" style={{ marginBottom: 4 }}>Project Colors</label>
+              <p className="settings-section-desc" style={{ margin: "0 0 8px", fontSize: 11 }}>
+                Override the auto-assigned color for each project.
+              </p>
+              {Object.entries(appearance.projectColorOverrides).map(([name, hex]) => (
+                <div key={name} className="appearance-color-row" style={{ marginBottom: 6 }}>
+                  <input
+                    type="color"
+                    className="appearance-color-input"
+                    value={hex}
+                    onChange={(e) => {
+                      const next = { ...appearance.projectColorOverrides, [name]: e.target.value };
+                      updateAppearance("projectColorOverrides", next);
+                    }}
+                  />
+                  <span className="appearance-color-label" style={{ flex: 1 }}>{name}</span>
+                  <button
+                    className="msg-action-btn"
+                    title="Remove override"
+                    onClick={() => {
+                      const next = { ...appearance.projectColorOverrides };
+                      delete next[name];
+                      updateAppearance("projectColorOverrides", next);
+                    }}
+                    style={{ fontSize: 12, padding: "2px 6px" }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div className="appearance-color-row" style={{ marginTop: 4 }}>
+                <button
+                  className="settings-save-btn"
+                  style={{
+                    background: "var(--bg-hover)",
+                    color: "var(--text-secondary)",
+                    fontSize: 11,
+                    padding: "6px 10px",
+                  }}
+                  onClick={() => {
+                    const name = prompt("Project name to add a color for:");
+                    if (name?.trim()) {
+                      const next = {
+                        ...appearance.projectColorOverrides,
+                        [name.trim()]: "#6c8bef",
+                      };
+                      updateAppearance("projectColorOverrides", next);
+                    }
+                  }}
+                >
+                  + Add project color
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Text controls */}
           <div className="appearance-group">
