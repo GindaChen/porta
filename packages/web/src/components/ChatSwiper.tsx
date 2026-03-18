@@ -1,13 +1,12 @@
 import { useRef, useEffect } from "react";
 import type { ConversationEntry } from "../hooks/useConversations";
+import { useAppearance } from "../hooks/useAppearance";
 
 interface Props {
   conversations: ConversationEntry[];
   activeId: string | null;
   onSelect: (id: string) => void;
 }
-
-const MAX_VISIBLE = 8;
 
 function chipLabel(summary: string): string {
   // Truncate long titles for the chip
@@ -28,11 +27,7 @@ function relativeTimeShort(iso: string): string {
 
 export function ChatSwiper({ conversations, activeId, onSelect }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Only show if there's more than 1 conversation
-  if (conversations.length <= 1) return null;
-
-  const visible = conversations.slice(0, MAX_VISIBLE);
+  const { settings } = useAppearance();
 
   // Auto-scroll to keep the active chip visible
   useEffect(() => {
@@ -48,6 +43,11 @@ export function ChatSwiper({ conversations, activeId, onSelect }: Props) {
       });
     }
   }, [activeId]);
+
+  // Only show if there's more than 1 conversation
+  if (conversations.length <= 1) return null;
+
+  const visible = conversations.slice(0, settings.swiperMaxVisible);
 
   return (
     <div className="chat-swiper">

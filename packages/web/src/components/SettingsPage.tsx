@@ -1,11 +1,7 @@
-/**
- * Settings Page
- *
- * Configure push notifications, poll interval, and speech recognition.
- */
-
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
+import { useAppearance, DEFAULTS } from "../hooks/useAppearance";
+import type { AppearanceSettings } from "../hooks/useAppearance";
 
 type Provider = "deepinfra" | "elevenlabs";
 
@@ -43,7 +39,65 @@ const pushSupported =
   "serviceWorker" in navigator &&
   "PushManager" in window;
 
+// ── Color helpers ──
+
+function rgbToHex(triplet: string): string {
+  const [r, g, b] = triplet.split(" ").map(Number);
+  return (
+    "#" +
+    [r, g, b].map((c) => Math.max(0, Math.min(255, c)).toString(16).padStart(2, "0")).join("")
+  );
+}
+
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return DEFAULTS.accentColor;
+  return `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}`;
+}
+
+// ── Range slider with live label ──
+
+function SliderControl({
+  label,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="appearance-control">
+      <label className="settings-label">
+        {label}
+        <span className="appearance-value">
+          {value}
+          {unit ?? "px"}
+        </span>
+      </label>
+      <input
+        className="appearance-range"
+        type="range"
+        min={min}
+        max={max}
+        step={step ?? 1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </div>
+  );
+}
+
 export function SettingsPage() {
+  const { settings: appearance, update: updateAppearance, reset: resetAppearance } = useAppearance();
   const [provider, setProvider] = useState<Provider>("deepinfra");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
@@ -138,9 +192,6 @@ export function SettingsPage() {
       await api.subscribePush(sub.toJSON());
 
       setPushSubscribed(true);
-
-      // Send a test push via the proxy to verify
-      // (The proxy will use web-push to push to our subscription)
     } catch (err) {
       setPushError(err instanceof Error ? err.message : "Failed to subscribe");
     } finally {
@@ -193,6 +244,137 @@ export function SettingsPage() {
         <div className="settings-header">
           <h2 className="settings-title">Settings</h2>
         </div>
+
+        {/* ── Appearance ── */}
+        <section className="settings-section">
+          <h3 className="settings-section-title">Appearance</h3>
+          <p className="settings-section-desc">
+            Customize the look and feel. Changes apply instantly.
+          </p>
+
+          {/* Theme preset */}
+          <div className="appearance-control">
+            <label className="settings-label">Theme</label>
+            <select
+              className="settings-select"
+              value={appearance.theme}
+              onChange={(e) =>
+                updateAppearance("theme", e.target.value as AppearanceSettings["theme"])
+              }
+            >
+              <option value="dark">Dark</option>
+              <option value="midnight">Midnight</option>
+              <option value="warm">Warm</option>
+            </select>
+          </div>
+
+          {/* Accent color */}
+          <div className="appearance-control">
+            <label className="settings-label">Accent Color</label>
+            <div className="appearance-color-row">
+              <input
+                type="color"
+                className="appearance-color-input"
+                value={rgbToHex(appearance.accentColor)}
+                onChange={(e) => updateAppearance("accentColor", hexToRgb(e.target.value))}
+              />
+              <span className="appearance-color-label">
+                {rgbToHex(appearance.accentColor)}
+              </span>
+            </div>
+          </div>
+
+          {/* Swiper controls */}
+          <div className="appearance-group">
+            <label className="settings-label" style={{ marginBottom: 4 }}>Chat Swiper</label>
+            <div className="appearance-toggle-row">
+              <span className="appearance-toggle-label">Show swiper</span>
+              <button
+                className={`appearance-toggle ${appearance.swiperVisible ? "on" : ""}`}
+                onClick={() => updateAppearance("swiperVisible", !appearance.swiperVisible)}
+              >
+                <span className="appearance-toggle-thumb" />
+              </button>
+            </div>
+            {appearance.swiperVisible && (
+              <>
+                <SliderControl
+                  label="Chip width"
+                  value={appearance.swiperChipWidth}
+                  min={80}
+                  max={200}
+                  onChange={(v) => updateAppearance("swiperChipWidth", v)}
+                />
+                <SliderControl
+                  label="Max visible"
+                  value={appearance.swiperMaxVisible}
+                  min={3}
+                  max={15}
+                  unit=""
+                  onChange={(v) => updateAppearance("swiperMaxVisible", v)}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Text controls */}
+          <div className="appearance-group">
+            <label className="settings-label" style={{ marginBottom: 4 }}>Text</label>
+            <SliderControl
+              label="Message font size"
+              value={appearance.messageFontSize}
+              min={12}
+              max={18}
+              step={0.5}
+              onChange={(v) => updateAppearance("messageFontSize", v)}
+            />
+            <SliderControl
+              label="Code font size"
+              value={appearance.codeFontSize}
+              min={10}
+              max={16}
+              step={0.5}
+              onChange={(v) => updateAppearance("codeFontSize", v)}
+            />
+          </div>
+
+          {/* Layout controls */}
+          <div className="appearance-group">
+            <label className="settings-label" style={{ marginBottom: 4 }}>Layout</label>
+            <SliderControl
+              label="Border radius"
+              value={appearance.borderRadius}
+              min={0}
+              max={20}
+              onChange={(v) => updateAppearance("borderRadius", v)}
+            />
+            <div className="appearance-control">
+              <label className="settings-label">Density</label>
+              <select
+                className="settings-select"
+                value={appearance.density}
+                onChange={(e) =>
+                  updateAppearance("density", e.target.value as AppearanceSettings["density"])
+                }
+              >
+                <option value="compact">Compact</option>
+                <option value="normal">Normal</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Reset */}
+          <button
+            className="settings-save-btn"
+            style={{ background: "var(--bg-hover)", color: "var(--text-secondary)" }}
+            onClick={resetAppearance}
+          >
+            Reset to Defaults
+          </button>
+        </section>
+
+        <hr className="settings-divider" />
 
         {/* ── Push Notifications ── */}
         <section className="settings-section">

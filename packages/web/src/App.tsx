@@ -23,6 +23,7 @@ import { useDraftText } from "./hooks/useDraftText";
 import { useChatActions } from "./hooks/useChatActions";
 import { useNotifications } from "./hooks/useNotifications";
 import { TabProvider, useTab } from "./hooks/useTab";
+import { AppearanceProvider } from "./hooks/useAppearance";
 import { api } from "./api/client";
 import { isUnconfirmedOptimisticMessage } from "./utils/optimisticMessages";
 import type { HealthResponse, MediaAttachment } from "./types";
@@ -30,9 +31,11 @@ import type { PlannerType } from "./components/ChatInput";
 
 export default function App() {
   return (
-    <TabProvider>
-      <AppContent />
-    </TabProvider>
+    <AppearanceProvider>
+      <TabProvider>
+        <AppContent />
+      </TabProvider>
+    </AppearanceProvider>
   );
 }
 

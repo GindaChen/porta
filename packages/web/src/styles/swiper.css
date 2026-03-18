@@ -4,7 +4,8 @@
   flex-shrink: 0;
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-primary);
-  padding: 6px 20px 2px;
+  padding: 8px 20px 4px;
+  display: var(--swiper-display, block);
 }
 
 .chat-swiper-track {
@@ -27,23 +28,26 @@
 .chat-swiper-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px 5px 10px;
+  gap: 5px;
+  padding: 8px 10px;
   border: 1px solid var(--border-default);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: rgb(var(--c-lift) / 0.03);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-family: var(--font-sans);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  width: var(--swiper-chip-width, 130px);
+  min-width: var(--swiper-chip-width, 130px);
+  max-width: var(--swiper-chip-width, 130px);
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
     color var(--transition-fast),
     box-shadow var(--transition-fast);
-  line-height: 1;
+  line-height: 1.3;
 }
 
 .chat-swiper-chip:hover {
@@ -95,7 +99,8 @@
 /* ── Label & time ── */
 
 .chat-swiper-chip-label {
-  max-width: 200px;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -121,17 +126,16 @@
 
 @media (max-width: 480px) {
   .chat-swiper {
-    padding: 4px 10px 0;
+    padding: 6px 10px 2px;
   }
 
   .chat-swiper-chip {
-    padding: 6px 10px 6px 8px;
+    padding: 8px 8px;
     font-size: 11px;
-    gap: 5px;
-  }
-
-  .chat-swiper-chip-label {
-    max-width: 140px;
+    gap: 4px;
+    width: var(--swiper-chip-width, 120px);
+    min-width: var(--swiper-chip-width, 120px);
+    max-width: var(--swiper-chip-width, 120px);
   }
 
   .chat-swiper-chip-time {
