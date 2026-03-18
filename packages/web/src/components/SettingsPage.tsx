@@ -315,6 +315,13 @@ export function SettingsPage() {
                   onChange={(v) => updateAppearance("swiperChipWidth", v)}
                 />
                 <SliderControl
+                  label="Chip height"
+                  value={appearance.swiperChipHeight}
+                  min={24}
+                  max={60}
+                  onChange={(v) => updateAppearance("swiperChipHeight", v)}
+                />
+                <SliderControl
                   label="Max visible"
                   value={appearance.swiperMaxVisible}
                   min={3}

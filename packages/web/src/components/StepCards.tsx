@@ -7,6 +7,8 @@ import {
   IconFile,
   IconFileText,
   IconLock,
+  IconZap,
+  IconAlertTriangle,
 } from "./Icons";
 import type { TrajectoryStep, FilePermissionRequest } from "../types";
 
@@ -337,6 +339,116 @@ export function CodeActionCard({ step }: CodeActionCardProps) {
               </div>
             ))}
           </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Generic Waiting Card ──
+// For any step type in WAITING status that doesn't have a dedicated card.
+
+interface GenericWaitingCardProps {
+  step: TrajectoryStep;
+  onAction?: (
+    trajectoryId: string,
+    stepIndex: number,
+    approved: boolean,
+  ) => Promise<void>;
+}
+
+export function GenericWaitingCard({ step, onAction }: GenericWaitingCardProps) {
+  const [responded, setResponded] = useState(false);
+  const isWaiting = step.status === "CORTEX_STEP_STATUS_WAITING";
+
+  const trajectoryId =
+    step.metadata?.sourceTrajectoryStepInfo?.trajectoryId ?? "";
+  const stepIndex = step.metadata?.sourceTrajectoryStepInfo?.stepIndex ?? 0;
+
+  const toolName = step.metadata?.toolCall?.name;
+  let label: string;
+  if (toolName) {
+    label = toolName.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  } else {
+    label = (step.type ?? "Action")
+      .replace("CORTEX_STEP_TYPE_", "")
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  // Try to extract descriptive text from toolCall arguments
+  let description = "";
+  if (step.metadata?.toolCall?.argumentsJson) {
+    try {
+      const args = JSON.parse(step.metadata.toolCall.argumentsJson);
+      // Common argument keys that might provide context
+      description =
+        args.explanation ||
+        args.description ||
+        args.Prompt ||
+        args.query ||
+        args.Url ||
+        args.CommandLine ||
+        "";
+      if (description.length > 100) {
+        description = description.slice(0, 97) + "…";
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+  }
+
+  const handleAction = async (approved: boolean) => {
+    if (!onAction) return;
+    setResponded(true);
+    try {
+      await onAction(trajectoryId, stepIndex, approved);
+    } catch {
+      setResponded(false);
+    }
+  };
+
+  const statusClass = responded
+    ? "cmd-ok"
+    : isWaiting
+      ? "cmd-wait"
+      : "";
+
+  return (
+    <div className={`chat-block step-card generic-waiting-card ${statusClass}`}>
+      <div className="step-card-header">
+        <span className="step-card-icon">
+          {isWaiting ? <IconAlertTriangle size={12} /> : <IconZap size={12} />}
+        </span>
+        <span className="step-card-desc">
+          {isWaiting && !responded ? "Waiting for approval: " : ""}
+          {label}
+        </span>
+      </div>
+      {description && (
+        <div className="step-card-cwd">{description}</div>
+      )}
+      {isWaiting && !responded && onAction && (
+        <div className="step-card-actions command-action-bar">
+          <span className="command-waiting-label">
+            <span className="waiting-dot" />
+            Waiting for approval
+          </span>
+          <div className="command-action-buttons">
+            <button
+              className="approve-btn command-action-btn reject"
+              onClick={() => handleAction(false)}
+            >
+              Deny
+            </button>
+            <button
+              className="approve-btn command-action-btn approve"
+              onClick={() => handleAction(true)}
+            >
+              Allow
+            </button>
+          </div>
         </div>
       )}
     </div>

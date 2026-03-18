@@ -21,6 +21,7 @@ import {
   CommandCard,
   CodeActionCard,
   FilePermissionCard,
+  GenericWaitingCard,
   getFilePermissionRequest,
 } from "./StepCards";
 import {
@@ -33,6 +34,7 @@ import {
   IconFolder,
   IconList,
   IconEye,
+  IconZap,
   IconMessageCircle,
   IconAlertTriangle,
 } from "./Icons";
@@ -111,6 +113,8 @@ function MsgIcon({ name }: { name?: string }) {
       return <IconList size={s} />;
     case "alert":
       return <IconAlertTriangle size={s} />;
+    case "zap":
+      return <IconZap size={s} />;
     default:
       return null;
   }
@@ -167,6 +171,17 @@ function SystemMessage({
       return (
         <div className="message system">
           <CodeActionCard step={msg.step} />
+        </div>
+      );
+    }
+    // Generic waiting card for any other step type that needs approval
+    if (msg.step.status === "CORTEX_STEP_STATUS_WAITING") {
+      return (
+        <div className="message system">
+          <GenericWaitingCard
+            step={msg.step}
+            onAction={onCommandAction}
+          />
         </div>
       );
     }

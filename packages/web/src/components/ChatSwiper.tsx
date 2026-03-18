@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import type { ConversationEntry } from "../hooks/useConversations";
 import { useAppearance } from "../hooks/useAppearance";
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 // ── Deterministic color palette for projects ──
+// Higher saturation + lightness for better visual separation
 
 const PROJECT_HUES = [
   210, // blue
@@ -37,9 +39,9 @@ function hashString(str: string): number {
 function projectColor(name: string): { bg: string; border: string; dot: string } {
   const hue = PROJECT_HUES[hashString(name) % PROJECT_HUES.length];
   return {
-    bg: `hsla(${hue}, 50%, 50%, 0.10)`,
-    border: `hsla(${hue}, 50%, 50%, 0.25)`,
-    dot: `hsl(${hue}, 60%, 60%)`,
+    bg: `hsla(${hue}, 60%, 50%, 0.14)`,
+    border: `hsla(${hue}, 60%, 55%, 0.35)`,
+    dot: `hsl(${hue}, 70%, 65%)`,
   };
 }
 
@@ -69,32 +71,53 @@ function relativeTimeShort(iso: string): string {
   return `${days}d`;
 }
 
-// ── Long-press popover hook ──
+// ── Pin persistence ──
 
-const LONG_PRESS_MS = 400;
-const POPOVER_TIMEOUT_MS = 3000;
+const PINS_KEY = "porta:pinned-chats";
 
-interface PopoverState {
-  text: string;
+function loadPins(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PINS_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function savePins(pins: Set<string>) {
+  try {
+    localStorage.setItem(PINS_KEY, JSON.stringify([...pins]));
+  } catch {}
+}
+
+// ── Context menu state ──
+
+interface ContextMenuState {
+  convId: string;
+  title: string;
+  project: string;
   x: number;
   y: number;
 }
 
-function useLongPressPopover() {
-  const [popover, setPopover] = useState<PopoverState | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const dismissRef = useRef<ReturnType<typeof setTimeout>>(null);
+// ── Long-press hook (returns context menu, not a simple popover) ──
 
-  const startPress = useCallback((text: string, clientX: number, clientY: number) => {
-    cancelPress();
-    timerRef.current = setTimeout(() => {
-      setPopover({ text, x: clientX, y: clientY });
-      // Auto-dismiss after a few seconds
-      dismissRef.current = setTimeout(() => {
-        setPopover(null);
-      }, POPOVER_TIMEOUT_MS);
-    }, LONG_PRESS_MS);
-  }, []);
+const LONG_PRESS_MS = 400;
+
+function useLongPressMenu() {
+  const [menu, setMenu] = useState<ContextMenuState | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const startPress = useCallback(
+    (convId: string, title: string, project: string, clientX: number, clientY: number) => {
+      cancelPress();
+      timerRef.current = setTimeout(() => {
+        // Haptic feedback on supported devices
+        if (navigator.vibrate) navigator.vibrate(10);
+        setMenu({ convId, title, project, x: clientX, y: clientY });
+      }, LONG_PRESS_MS);
+    },
+    [],
+  );
 
   const cancelPress = useCallback(() => {
     if (timerRef.current) {
@@ -103,19 +126,88 @@ function useLongPressPopover() {
     }
   }, []);
 
+  /** Show menu immediately (for right-click) */
+  const showMenu = useCallback(
+    (convId: string, title: string, project: string, clientX: number, clientY: number) => {
+      cancelPress();
+      if (navigator.vibrate) navigator.vibrate(10);
+      setMenu({ convId, title, project, x: clientX, y: clientY });
+    },
+    [cancelPress],
+  );
+
   const dismiss = useCallback(() => {
-    setPopover(null);
+    setMenu(null);
     cancelPress();
-    if (dismissRef.current) {
-      clearTimeout(dismissRef.current);
-      dismissRef.current = null;
-    }
   }, [cancelPress]);
 
-  return { popover, startPress, cancelPress, dismiss };
+  return { menu, startPress, cancelPress, showMenu, dismiss };
 }
 
-// ── Component ──
+// ── Context Menu Component ──
+
+function ContextMenu({
+  menu,
+  isPinned,
+  onPin,
+  onUnpin,
+  onDismiss,
+}: {
+  menu: ContextMenuState;
+  isPinned: boolean;
+  onPin: (id: string) => void;
+  onUnpin: (id: string) => void;
+  onDismiss: () => void;
+}) {
+  // Position: try to keep on-screen
+  const menuY = Math.max(8, menu.y - 120);
+  const menuX = Math.min(menu.x - 20, window.innerWidth - 270);
+
+  return createPortal(
+    <>
+      <div className="chip-context-backdrop" onClick={onDismiss} onTouchStart={onDismiss} />
+      <div
+        className="chip-context-menu"
+        style={{ left: Math.max(8, menuX), top: menuY }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="chip-context-menu-title">{menu.title}</div>
+        {menu.project !== "Others" && (
+          <div className="chip-context-menu-title" style={{ opacity: 0.5, paddingTop: 0, fontSize: 10 }}>
+            {menu.project}
+          </div>
+        )}
+        <div className="chip-context-menu-divider" />
+        {isPinned ? (
+          <button
+            className="chip-context-menu-item"
+            onClick={() => {
+              onUnpin(menu.convId);
+              onDismiss();
+            }}
+          >
+            <span className="chip-context-menu-item-icon">📌</span>
+            Unpin from front
+          </button>
+        ) : (
+          <button
+            className="chip-context-menu-item"
+            onClick={() => {
+              onPin(menu.convId);
+              onDismiss();
+            }}
+          >
+            <span className="chip-context-menu-item-icon">📌</span>
+            Pin to front
+          </button>
+        )}
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+// ── Main Component ──
 
 export function ChatSwiper({
   conversations,
@@ -125,7 +217,8 @@ export function ChatSwiper({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { settings } = useAppearance();
-  const { popover, startPress, cancelPress, dismiss } = useLongPressPopover();
+  const { menu, startPress, cancelPress, showMenu, dismiss } = useLongPressMenu();
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(loadPins);
 
   // Auto-scroll to keep the active chip visible
   useEffect(() => {
@@ -142,24 +235,38 @@ export function ChatSwiper({
     }
   }, [activeId]);
 
-  // Dismiss popover on outside tap
-  useEffect(() => {
-    if (!popover) return;
-    const handler = () => dismiss();
-    document.addEventListener("touchstart", handler);
-    document.addEventListener("click", handler);
-    return () => {
-      document.removeEventListener("touchstart", handler);
-      document.removeEventListener("click", handler);
-    };
-  }, [popover, dismiss]);
+  // Pin/unpin handlers
+  const handlePin = useCallback((id: string) => {
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      savePins(next);
+      return next;
+    });
+  }, []);
+
+  const handleUnpin = useCallback((id: string) => {
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      savePins(next);
+      return next;
+    });
+  }, []);
 
   const source = settings.swiperAllProjects ? allConversations : conversations;
 
   // Only show if there's more than 1 conversation
   if (source.length <= 1) return null;
 
-  const visible = source.slice(0, settings.swiperMaxVisible);
+  // Sort: pinned first, then by recency (original order)
+  const sorted = [...source].sort((a, b) => {
+    const aPinned = pinnedIds.has(a.id) ? 0 : 1;
+    const bPinned = pinnedIds.has(b.id) ? 0 : 1;
+    return aPinned - bPinned;
+  });
+
+  const visible = sorted.slice(0, settings.swiperMaxVisible);
   const showProjectColors = settings.swiperAllProjects;
 
   return (
@@ -171,12 +278,14 @@ export function ChatSwiper({
             conv.summary.status === "CASCADE_RUN_STATUS_RUNNING";
           const isIdle = conv.summary.status === "CASCADE_RUN_STATUS_IDLE";
           const isError = conv.summary.status === "CASCADE_RUN_STATUS_ERROR";
+          const isPinned = pinnedIds.has(conv.id);
 
           let statusClass = "";
           if (isActive) statusClass = "active";
           else if (isRunning) statusClass = "running";
           else if (isError) statusClass = "error";
           else if (isIdle) statusClass = "done";
+          if (isPinned) statusClass += " pinned";
 
           const project = extractProjectName(conv);
           const colors = showProjectColors ? projectColor(project) : null;
@@ -202,15 +311,29 @@ export function ChatSwiper({
               key={conv.id}
               data-chip-id={conv.id}
               className={`chat-swiper-chip ${statusClass}`}
-              onClick={() => onSelect(conv.id)}
+              onClick={() => {
+                // Only navigate if context menu is not open
+                if (!menu) onSelect(conv.id);
+              }}
               style={chipStyle}
-              // Long-press for tooltip (mobile)
+              // Long-press for context menu (mobile)
               onTouchStart={(e) => {
                 const touch = e.touches[0];
-                startPress(tooltipText, touch.clientX, touch.clientY);
+                startPress(
+                  conv.id,
+                  conv.summary.summary,
+                  project,
+                  touch.clientX,
+                  touch.clientY,
+                );
               }}
               onTouchEnd={cancelPress}
               onTouchMove={cancelPress}
+              // Context menu on right-click (desktop)
+              onContextMenu={(e) => {
+                e.preventDefault();
+                showMenu(conv.id, conv.summary.summary, project, e.clientX, e.clientY);
+              }}
               // Hover title for desktop
               title={tooltipText}
             >
@@ -226,21 +349,15 @@ export function ChatSwiper({
         })}
       </div>
 
-      {/* Long-press popover */}
-      {popover && (
-        <div
-          className="chip-popover"
-          style={{
-            left: Math.min(popover.x, window.innerWidth - 220),
-            top: popover.y - 48,
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            dismiss();
-          }}
-        >
-          {popover.text}
-        </div>
+      {/* iOS-style context menu on long-press */}
+      {menu && (
+        <ContextMenu
+          menu={menu}
+          isPinned={pinnedIds.has(menu.convId)}
+          onPin={handlePin}
+          onUnpin={handleUnpin}
+          onDismiss={dismiss}
+        />
       )}
     </div>
   );

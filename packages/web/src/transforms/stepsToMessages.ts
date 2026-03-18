@@ -190,6 +190,37 @@ export function stepsToMessages(steps: TrajectoryStep[]): ChatMessage[] {
         type,
         icon: "search",
       });
+    } else if (
+      type &&
+      type !== "CORTEX_STEP_TYPE_USER_INPUT" &&
+      type !== "CORTEX_STEP_TYPE_PLANNER_RESPONSE"
+    ) {
+      // ── Catch-all: render any unrecognized step type ──
+      // This ensures browser actions, web searches, image generation, URL
+      // reading, and any future step types are visible instead of silently dropped.
+      const toolName = step.metadata?.toolCall?.name;
+      const isWaiting = step.status === "CORTEX_STEP_STATUS_WAITING";
+
+      // Build a human-readable label from the tool name or step type
+      let label: string;
+      if (toolName) {
+        label = toolName.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      } else {
+        label = type
+          .replace("CORTEX_STEP_TYPE_", "")
+          .replace(/_/g, " ")
+          .toLowerCase()
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+
+      messages.push({
+        role: "system",
+        content: isWaiting ? "" : label,
+        stepIndex: i,
+        type,
+        step,
+        icon: isWaiting ? undefined : "zap",
+      });
     }
   }
 

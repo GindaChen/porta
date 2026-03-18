@@ -24,6 +24,8 @@ export interface AppearanceSettings {
   accentColor: string;
   /** Swiper chip width in px */
   swiperChipWidth: number;
+  /** Swiper chip height in px */
+  swiperChipHeight: number;
   /** Max visible swiper chips */
   swiperMaxVisible: number;
   /** Whether to show the swiper */
@@ -46,6 +48,7 @@ export const DEFAULTS: AppearanceSettings = {
   theme: "dark",
   accentColor: "108 139 239",
   swiperChipWidth: 130,
+  swiperChipHeight: 36,
   swiperMaxVisible: 8,
   swiperVisible: true,
   swiperAllProjects: false,
@@ -173,6 +176,7 @@ function applyToDOM(s: AppearanceSettings) {
 
   // Swiper
   el.setProperty("--swiper-chip-width", `${s.swiperChipWidth}px`);
+  el.setProperty("--swiper-chip-height", `${s.swiperChipHeight}px`);
   el.setProperty("--swiper-max-visible", `${s.swiperMaxVisible}`);
   el.setProperty("--swiper-display", s.swiperVisible ? "block" : "none");
 
