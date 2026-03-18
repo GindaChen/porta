@@ -407,6 +407,18 @@ export function SettingsPage() {
             </div>
           )}
 
+          {/* Input controls */}
+          <div className="appearance-group">
+            <label className="settings-label" style={{ marginBottom: 4 }}>Input</label>
+            <SliderControl
+              label="Model selector width"
+              value={appearance.modelSelectorWidth}
+              min={80}
+              max={220}
+              onChange={(v) => updateAppearance("modelSelectorWidth", v)}
+            />
+          </div>
+
           {/* Text controls */}
           <div className="appearance-group">
             <label className="settings-label" style={{ marginBottom: 4 }}>Text</label>

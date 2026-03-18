@@ -385,6 +385,7 @@ export function ChatSwiper({
         <ContextMenu
           menu={menu}
           isPinned={pinnedIds.has(menu.convId)}
+          allConversations={allConversations}
           onPin={handlePin}
           onUnpin={handleUnpin}
           onDismiss={dismiss}

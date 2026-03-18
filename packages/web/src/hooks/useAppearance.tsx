@@ -38,6 +38,8 @@ export interface AppearanceSettings {
   swiperActiveBorderOpacity: number;
   /** Per-project color overrides: project name → hex color */
   projectColorOverrides: Record<string, string>;
+  /** Model selector button width in px */
+  modelSelectorWidth: number;
   /** Message body font size in px */
   messageFontSize: number;
   /** Code font size in px */
@@ -61,6 +63,7 @@ export const DEFAULTS: AppearanceSettings = {
   swiperActiveGlow: 8,
   swiperActiveBorderOpacity: 0.6,
   projectColorOverrides: {},
+  modelSelectorWidth: 180,
   messageFontSize: 13.5,
   codeFontSize: 12,
   borderRadius: 10,
@@ -190,6 +193,9 @@ function applyToDOM(s: AppearanceSettings) {
   el.setProperty("--swiper-display", s.swiperVisible ? "block" : "none");
   el.setProperty("--swiper-active-glow", `${s.swiperActiveGlow}px`);
   el.setProperty("--swiper-active-border-opacity", `${s.swiperActiveBorderOpacity}`);
+
+  // Model selector
+  el.setProperty("--model-selector-width", `${s.modelSelectorWidth}px`);
 
   // Text
   el.setProperty("--msg-font-size", `${s.messageFontSize}px`);
