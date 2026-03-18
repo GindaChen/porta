@@ -16,6 +16,8 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onTogglePin: (id: string) => void;
+  isPinned: (id: string) => boolean;
   loading: boolean;
   connected: boolean;
   isOpen: boolean;
@@ -58,9 +60,13 @@ function isArchived(conv: ConversationEntry): boolean {
 /** Three-dot context menu */
 function ContextMenu({
   onDelete,
+  onTogglePin,
+  isPinned,
   onClose,
 }: {
   onDelete: () => void;
+  onTogglePin: () => void;
+  isPinned: boolean;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -77,6 +83,16 @@ function ContextMenu({
 
   return (
     <div ref={ref} className="context-menu">
+      <button
+        className="context-menu-item"
+        onClick={(e) => {
+          e.stopPropagation();
+          onTogglePin();
+          onClose();
+        }}
+      >
+        {isPinned ? "Unpin" : "Pin to top"}
+      </button>
       <button
         className="context-menu-item danger"
         onClick={(e) => {
@@ -106,6 +122,8 @@ export function Sidebar({
   onSelect,
   onNew,
   onDelete,
+  onTogglePin,
+  isPinned,
   loading,
   connected,
   isOpen,
@@ -146,6 +164,11 @@ export function Sidebar({
       .map(([name, convs]) => {
         // Sort within group: running first, then by lastModifiedTime desc
         convs.sort((a, b) => {
+          // Pinned first
+          const aPinned = isPinned(a.id);
+          const bPinned = isPinned(b.id);
+          if (aPinned !== bPinned) return aPinned ? -1 : 1;
+          // Running next
           const aRunning = a.summary.status === "CASCADE_RUN_STATUS_RUNNING";
           const bRunning = b.summary.status === "CASCADE_RUN_STATUS_RUNNING";
           if (aRunning !== bRunning) return aRunning ? -1 : 1;
@@ -179,7 +202,7 @@ export function Sidebar({
         );
         return bTime - aTime;
       });
-  }, [conversations]);
+  }, [conversations, isPinned]);
 
   const toggleGroup = (name: string) => {
     setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -285,7 +308,10 @@ export function Sidebar({
         }}
       >
         <div className="sidebar-item-content">
-          <div className="sidebar-item-title">{conv.summary.summary}</div>
+          <div className="sidebar-item-title">
+            {isPinned(conv.id) && <span className="sidebar-pin-icon">📌</span>}
+            {conv.summary.summary}
+          </div>
           <div className="sidebar-item-meta">
             {relativeTime(conv.summary.lastModifiedTime)}
             {" · "}
@@ -308,6 +334,8 @@ export function Sidebar({
           {menuOpen === conv.id && (
             <ContextMenu
               onDelete={() => onDelete(conv.id)}
+              onTogglePin={() => onTogglePin(conv.id)}
+              isPinned={isPinned(conv.id)}
               onClose={closeMenu}
             />
           )}

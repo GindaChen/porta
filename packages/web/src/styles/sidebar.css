@@ -367,6 +367,12 @@
   text-overflow: ellipsis;
 }
 
+.sidebar-pin-icon {
+  font-size: 10px;
+  margin-right: 4px;
+  opacity: 0.6;
+}
+
 .sidebar-item-meta {
   font-size: 11px;
   color: var(--text-tertiary);

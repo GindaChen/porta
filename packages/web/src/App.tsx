@@ -24,6 +24,7 @@ import { useChatActions } from "./hooks/useChatActions";
 import { useNotifications } from "./hooks/useNotifications";
 import { TabProvider, useTab } from "./hooks/useTab";
 import { AppearanceProvider } from "./hooks/useAppearance";
+import { usePinnedConversations } from "./hooks/usePinnedConversations";
 import { api } from "./api/client";
 import { isUnconfirmedOptimisticMessage } from "./utils/optimisticMessages";
 import type { HealthResponse, MediaAttachment } from "./types";
@@ -106,6 +107,9 @@ function ChatView() {
 
   // ── Notifications: alert when a task finishes ──
   const { toasts, dismissToast } = useNotifications(conversations);
+
+  // ── Pinned conversations ──
+  const { togglePin, isPinned } = usePinnedConversations();
 
   // ── Hooks ──
   const { workspaces, currentWorkspaceUri } = useWorkspaces(
@@ -291,6 +295,8 @@ function ChatView() {
         }}
         onNew={handleNew}
         onDelete={handleDelete}
+        onTogglePin={togglePin}
+        isPinned={isPinned}
         loading={loading}
         connected={connected}
         isOpen={sidebarOpen}
