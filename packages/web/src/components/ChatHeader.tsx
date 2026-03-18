@@ -29,6 +29,13 @@ export function ChatHeader({ title, projectName, onMenuToggle }: Props) {
         {title}
       </span>
       <div className="main-header-actions">
+        <button
+          className="header-refresh-btn"
+          onClick={() => window.location.reload()}
+          title="Reload app"
+        >
+          ⟳
+        </button>
         {projectName && (
           <span className="main-header-project">
             <IconFolder size={11} /> {projectName}

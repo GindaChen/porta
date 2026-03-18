@@ -111,21 +111,8 @@ export function ChatInput({
   defaultModel,
   defaultPlannerType,
 }: Props) {
-  const effectiveDefault = defaultModel ?? DEFAULT_MODEL;
-  const [model, setModel] = useState<string | null>(effectiveDefault);
-
-  // Sync model when settings change
-  useEffect(() => {
-    setModel(effectiveDefault);
-  }, [effectiveDefault]);
-
-  const effectivePlanner = defaultPlannerType ?? "conversational";
-  const [plannerType, setPlannerType] = useState<PlannerType>(effectivePlanner);
-
-  // Sync planner type when settings change
-  useEffect(() => {
-    setPlannerType(effectivePlanner);
-  }, [effectivePlanner]);
+  const [model, setModel] = useState<string | null>(DEFAULT_MODEL);
+  const [plannerType, setPlannerType] = useState<PlannerType>("planning");
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -219,8 +206,7 @@ export function ChatInput({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      // On mobile, Enter inserts a newline — send via button only
-      if (window.innerWidth <= 480 || inputDisabled) return;
+      if (inputDisabled) return;
       e.preventDefault();
       handleSubmit();
     }

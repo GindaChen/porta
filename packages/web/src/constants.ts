@@ -6,4 +6,4 @@
  */
 
 /** Model used when the user hasn't explicitly picked one. */
-export const DEFAULT_MODEL = "MODEL_PLACEHOLDER_M36";
+export const DEFAULT_MODEL = "MODEL_PLACEHOLDER_M26";
