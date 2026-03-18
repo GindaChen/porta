@@ -88,18 +88,29 @@ export function useNotifications(conversations: ConversationEntry[]) {
       // Play chime
       playChime();
 
-      // Browser notification (if available and granted)
+      // Push notification via ServiceWorker (works on iOS PWA + desktop)
       if (browserNotifSupported && Notification.permission === "granted") {
-        try {
-          const n = new Notification(title, {
-            body,
-            icon: "/favicon.ico",
-            tag: `porta-done-${convId}`,
+        navigator.serviceWorker?.ready
+          .then((reg) => {
+            reg.showNotification(title, {
+              body,
+              icon: "/favicon.ico",
+              badge: "/favicon.ico",
+              tag: `porta-done-${convId}`,
+            });
+          })
+          .catch(() => {
+            // Fallback: try direct Notification (desktop browsers)
+            try {
+              new Notification(title, {
+                body,
+                icon: "/favicon.ico",
+                tag: `porta-done-${convId}`,
+              });
+            } catch {
+              // Ignore
+            }
           });
-          setTimeout(() => n.close(), 8000);
-        } catch {
-          // Ignore
-        }
       }
     },
     [],

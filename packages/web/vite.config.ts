@@ -1,4 +1,6 @@
 import { fileURLToPath } from "node:url";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
@@ -11,11 +13,25 @@ function toHttpOrigin(host: string, port: string) {
   return `http://${normalizedHost}:${port}`;
 }
 
+// Try to load Tailscale TLS certs for HTTPS
+function loadTlsCerts() {
+  const certPath = join(repoRoot, ".certs", "cert.pem");
+  const keyPath = join(repoRoot, ".certs", "key.pem");
+  if (existsSync(certPath) && existsSync(keyPath)) {
+    return {
+      cert: readFileSync(certPath, "utf-8"),
+      key: readFileSync(keyPath, "utf-8"),
+    };
+  }
+  return undefined;
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, repoRoot, "");
   const proxyHost = env.PORTA_HOST || process.env.PORTA_HOST || "127.0.0.1";
   const proxyPort = env.PORTA_PORT || process.env.PORTA_PORT || "3170";
+  const tls = loadTlsCerts();
 
   return {
     plugins: [
@@ -32,7 +48,10 @@ export default defineConfig(({ mode }) => {
     envDir: repoRoot,
     server: {
       port: 5174,
-      host: proxyHost !== "127.0.0.1" ? proxyHost : undefined,
+      // Bind to 0.0.0.0 so both Tailscale IP and DNS hostname work
+      host: "0.0.0.0",
+      // Enable HTTPS if certs are available
+      ...(tls ? { https: tls } : {}),
       proxy: {
         "/api": {
           target: toHttpOrigin(proxyHost, proxyPort),
