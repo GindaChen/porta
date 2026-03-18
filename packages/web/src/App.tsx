@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   Routes,
   Route,
@@ -10,6 +10,7 @@ import { Sidebar } from "./components/Sidebar";
 import { ChatHeader } from "./components/ChatHeader";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
+import { ChatSwiper } from "./components/ChatSwiper";
 import { WorkspaceSelector } from "./components/WorkspaceSelector";
 import { SettingsPage } from "./components/SettingsPage";
 import { TabBar } from "./components/TabBar";
@@ -113,6 +114,18 @@ function ChatView() {
   const activeConv = conversations.find((c) => c.id === activeId);
   const isRunning = activeConv?.summary.status === "CASCADE_RUN_STATUS_RUNNING";
   const connected = !!health && health.languageServers.length > 0;
+
+  // ── Project-scoped conversations for the chat swiper ──
+  const projectConversations = useMemo(
+    () =>
+      currentWorkspaceUri
+        ? conversations.filter((c) => {
+            const ws = c.summary.workspaces?.[0];
+            return ws?.workspaceFolderAbsoluteUri === currentWorkspaceUri;
+          })
+        : conversations,
+    [conversations, currentWorkspaceUri],
+  );
 
   const {
     optimisticMessages,
@@ -399,6 +412,14 @@ function ChatView() {
             )}
           </div>
         )}
+        <ChatSwiper
+          conversations={projectConversations}
+          activeId={activeId}
+          onSelect={(id) => {
+            setOptimisticMessages([]);
+            navigate(chatUrl(id));
+          }}
+        />
         <ChatInput
           onSend={handleSend}
           onStop={handleStop}

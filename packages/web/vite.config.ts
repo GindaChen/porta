@@ -43,6 +43,10 @@ export default defineConfig(({ mode }) => {
           // Import push notification handler into the service worker
           importScripts: ["/sw-push.js"],
         },
+        // Enable service worker in dev mode (required for push notifications)
+        devOptions: {
+          enabled: true,
+        },
         manifest: false, // Use our existing public/manifest.json
         injectRegister: "script-defer",
       }),

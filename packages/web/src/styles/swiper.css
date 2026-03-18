@@ -1,0 +1,140 @@
+/* ── Chat Swiper: quick-switch conversation chips ── */
+
+.chat-swiper {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  padding: 6px 20px 2px;
+}
+
+.chat-swiper-track {
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+  padding: 2px 0 4px;
+}
+
+.chat-swiper-track::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-swiper-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: rgb(var(--c-lift) / 0.03);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  line-height: 1;
+}
+
+.chat-swiper-chip:hover {
+  background: rgb(var(--c-lift) / 0.08);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+/* ── Status dot ── */
+
+.chat-swiper-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-tertiary);
+  transition: background var(--transition-fast);
+}
+
+/* Done (idle) → green dot */
+.chat-swiper-chip.done .chat-swiper-chip-dot {
+  background: rgb(var(--c-success));
+}
+
+/* Running → accent dot with pulse */
+.chat-swiper-chip.running .chat-swiper-chip-dot {
+  background: var(--accent);
+  animation: swiper-pulse 1.5s ease-in-out infinite;
+}
+
+/* Error → red dot */
+.chat-swiper-chip.error .chat-swiper-chip-dot {
+  background: rgb(var(--c-error));
+}
+
+/* Active → highlighted chip */
+.chat-swiper-chip.active {
+  background: rgb(var(--c-accent) / 0.14);
+  border-color: rgb(var(--c-accent) / 0.4);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.chat-swiper-chip.active .chat-swiper-chip-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgb(var(--c-accent) / 0.2);
+}
+
+/* ── Label & time ── */
+
+.chat-swiper-chip-label {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-swiper-chip-time {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+/* ── Pulse animation ── */
+
+@keyframes swiper-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(var(--c-accent) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgb(var(--c-accent) / 0);
+  }
+}
+
+/* ── Responsive: Mobile ── */
+
+@media (max-width: 480px) {
+  .chat-swiper {
+    padding: 4px 10px 0;
+  }
+
+  .chat-swiper-chip {
+    padding: 6px 10px 6px 8px;
+    font-size: 11px;
+    gap: 5px;
+  }
+
+  .chat-swiper-chip-label {
+    max-width: 140px;
+  }
+
+  .chat-swiper-chip-time {
+    font-size: 9px;
+  }
+}
