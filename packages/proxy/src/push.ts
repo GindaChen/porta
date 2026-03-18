@@ -182,7 +182,7 @@ async function pollConversations(): Promise<void> {
   }
 }
 
-async function sendPushToAll(title: string, body: string): Promise<void> {
+export async function sendPushToAll(title: string, body: string): Promise<void> {
   if (!pushData) return;
 
   const payload = JSON.stringify({ title, body });

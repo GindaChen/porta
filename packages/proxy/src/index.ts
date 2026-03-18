@@ -19,7 +19,9 @@ import { registerRpcPassthroughRoutes } from "./routes/rpcPassthrough.js";
 import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerSpeechRoutes } from "./routes/speech.js";
 import { registerPushRoutes } from "./routes/push.js";
+import { registerLoopRoutes } from "./routes/loop.js";
 import { initPushService } from "./push.js";
+import { initLoopService } from "./loop.js";
 import {
   assertSupportedListenHost,
   formatListenAddress,
@@ -73,6 +75,7 @@ registerRpcPassthroughRoutes(app);
 registerSettingsRoutes(app);
 registerSpeechRoutes(app);
 registerPushRoutes(app);
+registerLoopRoutes(app);
 
 // ── Start ──
 
@@ -102,5 +105,9 @@ server.listen(PORT, HOST, () => {
   // Initialize push notification service (background poller)
   void initPushService().catch((err) =>
     console.warn(`⚠️ Push service init failed: ${(err as Error).message}`),
+  );
+  // Initialize autopilot loop service (resume persisted loops)
+  void initLoopService().catch((err) =>
+    console.warn(`⚠️ Loop service init failed: ${(err as Error).message}`),
   );
 });

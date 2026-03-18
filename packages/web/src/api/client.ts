@@ -226,4 +226,34 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ pollIntervalMs: ms }),
     }),
+
+  // ── Autopilot Loop ──
+
+  startLoop: (config: {
+    sessionId: string;
+    messages?: string[];
+    message?: string;
+    intervalMs?: number;
+    maxIterations?: number;
+    stopOnError?: boolean;
+  }) =>
+    request<Record<string, unknown>>("/api/loop/start", {
+      method: "POST",
+      body: JSON.stringify(config),
+    }),
+
+  stopLoop: (sessionId: string) =>
+    request<Record<string, unknown>>("/api/loop/stop", {
+      method: "POST",
+      body: JSON.stringify({ sessionId }),
+    }),
+
+  getLoopStatus: () =>
+    request<Record<string, Record<string, unknown>>>("/api/loop/status"),
+
+  getLoop: (sessionId: string) =>
+    request<Record<string, unknown>>(`/api/loop/${sessionId}`),
+
+  deleteLoop: (sessionId: string) =>
+    request(`/api/loop/${sessionId}`, { method: "DELETE" }),
 };
