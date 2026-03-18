@@ -1,9 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ModelSelector } from "./ModelSelector";
-import { IconPaperclip } from "./Icons";
+import { IconPaperclip, IconMic } from "./Icons";
 import type { MediaAttachment } from "../types";
 import { prepareAttachments } from "../utils/imageAttachments";
 import { DEFAULT_MODEL } from "../constants";
+import {
+  useSpeechRecognition,
+  speechRecognitionSupported,
+} from "../hooks/useSpeechRecognition";
 const ALLOWED_TYPES = [
   "image/png",
   "image/jpeg",
@@ -114,6 +118,21 @@ export function ChatInput({
   const fileErrorTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Speech recognition
+  const handleTranscript = useCallback(
+    (text: string) => {
+      const separator = draft && !draft.endsWith(" ") ? " " : "";
+      onDraftChange(draft + separator + text);
+    },
+    [draft, onDraftChange],
+  );
+
+  const {
+    isListening,
+    interimText,
+    toggle: toggleMic,
+  } = useSpeechRecognition({ onTranscript: handleTranscript });
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -315,7 +334,7 @@ export function ChatInput({
           <textarea
             ref={textareaRef}
             className="chat-input"
-            placeholder="Send a message..."
+            placeholder={isListening ? "Listening..." : "Send a message..."}
             value={draft}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
@@ -323,6 +342,9 @@ export function ChatInput({
             rows={1}
             disabled={inputDisabled}
           />
+          {interimText && (
+            <div className="speech-interim-text">{interimText}</div>
+          )}
         </div>
 
         <div className="chat-input-bottom">
@@ -335,6 +357,16 @@ export function ChatInput({
             >
               <IconPaperclip size={18} />
             </button>
+            {speechRecognitionSupported && (
+              <button
+                className={`chat-action-icon-btn chat-mic-btn ${isListening ? "recording" : ""}`}
+                onClick={toggleMic}
+                title={isListening ? "Stop recording" : "Voice input"}
+                disabled={inputDisabled}
+              >
+                <IconMic size={18} />
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"

@@ -348,4 +348,41 @@
   font-weight: 600;
 }
 
+/* ── Voice / Mic button ── */
+
+.chat-mic-btn.recording {
+  color: rgb(var(--c-error));
+  background: rgb(var(--c-error) / 0.1);
+  animation: mic-pulse 1.5s ease-in-out infinite;
+}
+
+.chat-mic-btn.recording:hover {
+  background: rgb(var(--c-error) / 0.18);
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--c-error) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(var(--c-error) / 0);
+  }
+}
+
+/* ── Interim speech text ── */
+
+.speech-interim-text {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  padding: 2px 0 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  animation: fade-in 150ms ease-out;
+}
+
 /* ── Connection status bar ── */
