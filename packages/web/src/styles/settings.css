@@ -1,12 +1,13 @@
 /* ── Settings Page ── */
 
 .settings-page {
-  flex: 1;
-  min-height: 100%;
+  height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 40px 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg-primary);
 }
 

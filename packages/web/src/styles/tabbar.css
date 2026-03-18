@@ -1,12 +1,7 @@
 /* ── Tab Panels — both mounted, visibility toggled ── */
 
 .tab-panel-active {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;       /* Allow flex child to shrink and scroll */
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+  display: contents; /* Contribute to layout as if wrapper doesn't exist */
 }
 
 .tab-panel-hidden {
