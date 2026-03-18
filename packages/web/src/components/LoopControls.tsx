@@ -31,14 +31,6 @@ const DEFAULT_MESSAGES = [
   "Check your progress. Are there remaining items? Continue.",
 ];
 
-const INTERVAL_OPTIONS = [
-  { label: "1 min", value: 60_000 },
-  { label: "2 min", value: 120_000 },
-  { label: "5 min", value: 300_000 },
-  { label: "10 min", value: 600_000 },
-  { label: "15 min", value: 900_000 },
-  { label: "30 min", value: 1_800_000 },
-];
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -56,7 +48,7 @@ export function LoopControls({ sessionId, disabled }: Props) {
   const [loading, setLoading] = useState(false);
 
   // Config state (for starting a new loop)
-  const [intervalMs, setIntervalMs] = useState(300_000); // 5 min
+  const [intervalMin, setIntervalMin] = useState(5); // minutes
   const [maxIter, setMaxIter] = useState(50);
   const [messages, setMessages] = useState<string[]>(DEFAULT_MESSAGES);
   const [editingMessages, setEditingMessages] = useState(false);
@@ -99,7 +91,7 @@ export function LoopControls({ sessionId, disabled }: Props) {
       await api.startLoop({
         sessionId,
         messages,
-        intervalMs,
+        intervalMs: Math.max(1, intervalMin) * 60_000,
         maxIterations: maxIter,
         stopOnError: true,
       });
@@ -110,7 +102,7 @@ export function LoopControls({ sessionId, disabled }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [sessionId, messages, intervalMs, maxIter, fetchStatus]);
+  }, [sessionId, messages, intervalMin, maxIter, fetchStatus]);
 
   const handleStop = useCallback(async () => {
     if (!sessionId) return;
@@ -189,18 +181,15 @@ export function LoopControls({ sessionId, disabled }: Props) {
       {expanded && (
         <div className="loop-config-panel">
           <div className="loop-config-row">
-            <label className="loop-config-label">Interval</label>
-            <select
-              className="loop-config-select"
-              value={intervalMs}
-              onChange={(e) => setIntervalMs(Number(e.target.value))}
-            >
-              {INTERVAL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <label className="loop-config-label">Interval (min)</label>
+            <input
+              className="loop-config-input"
+              type="number"
+              min={1}
+              max={120}
+              value={intervalMin}
+              onChange={(e) => setIntervalMin(Number(e.target.value))}
+            />
           </div>
 
           <div className="loop-config-row">
