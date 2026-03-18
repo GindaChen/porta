@@ -417,6 +417,7 @@ function ChatView() {
         )}
         <ChatSwiper
           conversations={projectConversations}
+          allConversations={conversations}
           activeId={activeId}
           onSelect={(id) => {
             setOptimisticMessages([]);

@@ -3,13 +3,57 @@ import type { ConversationEntry } from "../hooks/useConversations";
 import { useAppearance } from "../hooks/useAppearance";
 
 interface Props {
+  /** Conversations scoped to the current project */
   conversations: ConversationEntry[];
+  /** All conversations across all projects */
+  allConversations: ConversationEntry[];
   activeId: string | null;
   onSelect: (id: string) => void;
 }
 
+// ── Deterministic color palette for projects ──
+
+const PROJECT_HUES = [
+  210, // blue
+  150, // teal
+  30,  // orange
+  270, // purple
+  340, // pink
+  60,  // yellow-green
+  180, // cyan
+  0,   // red
+  120, // green
+  300, // magenta
+];
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function projectColor(name: string): { bg: string; border: string; dot: string } {
+  const hue = PROJECT_HUES[hashString(name) % PROJECT_HUES.length];
+  return {
+    bg: `hsla(${hue}, 50%, 50%, 0.10)`,
+    border: `hsla(${hue}, 50%, 50%, 0.25)`,
+    dot: `hsl(${hue}, 60%, 60%)`,
+  };
+}
+
+function extractProjectName(conv: ConversationEntry): string {
+  const ws = conv.summary.workspaces?.[0];
+  if (!ws) return "Others";
+  const repo = ws.repository?.computedName;
+  if (repo) return repo.split("/").pop() ?? repo;
+  const uri = ws.workspaceFolderAbsoluteUri;
+  if (uri) return uri.split("/").pop() ?? "Others";
+  return "Others";
+}
+
 function chipLabel(summary: string): string {
-  // Truncate long titles for the chip
   if (summary.length <= 28) return summary;
   return summary.slice(0, 26) + "…";
 }
@@ -25,7 +69,12 @@ function relativeTimeShort(iso: string): string {
   return `${days}d`;
 }
 
-export function ChatSwiper({ conversations, activeId, onSelect }: Props) {
+export function ChatSwiper({
+  conversations,
+  allConversations,
+  activeId,
+  onSelect,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { settings } = useAppearance();
 
@@ -44,10 +93,15 @@ export function ChatSwiper({ conversations, activeId, onSelect }: Props) {
     }
   }, [activeId]);
 
-  // Only show if there's more than 1 conversation
-  if (conversations.length <= 1) return null;
+  const source = settings.swiperAllProjects ? allConversations : conversations;
 
-  const visible = conversations.slice(0, settings.swiperMaxVisible);
+  // Only show if there's more than 1 conversation
+  if (source.length <= 1) return null;
+
+  const visible = source.slice(0, settings.swiperMaxVisible);
+
+  // When showing all projects, color chips by project
+  const showProjectColors = settings.swiperAllProjects;
 
   return (
     <div className="chat-swiper">
@@ -65,15 +119,32 @@ export function ChatSwiper({ conversations, activeId, onSelect }: Props) {
           else if (isError) statusClass = "error";
           else if (isIdle) statusClass = "done";
 
+          // Project-based coloring
+          const project = extractProjectName(conv);
+          const colors = showProjectColors ? projectColor(project) : null;
+
+          const chipStyle: React.CSSProperties = colors
+            ? {
+                background: isActive ? undefined : colors.bg,
+                borderColor: isActive ? undefined : colors.border,
+              }
+            : {};
+
+          const dotStyle: React.CSSProperties =
+            colors && !isActive && !isRunning && !isError
+              ? { background: colors.dot }
+              : {};
+
           return (
             <button
               key={conv.id}
               data-chip-id={conv.id}
               className={`chat-swiper-chip ${statusClass}`}
               onClick={() => onSelect(conv.id)}
-              title={conv.summary.summary}
+              title={showProjectColors ? `[${project}] ${conv.summary.summary}` : conv.summary.summary}
+              style={chipStyle}
             >
-              <span className="chat-swiper-chip-dot" />
+              <span className="chat-swiper-chip-dot" style={dotStyle} />
               <span className="chat-swiper-chip-label">
                 {chipLabel(conv.summary.summary)}
               </span>

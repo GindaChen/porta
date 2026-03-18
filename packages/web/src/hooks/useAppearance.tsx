@@ -28,6 +28,8 @@ export interface AppearanceSettings {
   swiperMaxVisible: number;
   /** Whether to show the swiper */
   swiperVisible: boolean;
+  /** Whether to show all projects in swiper (vs current only) */
+  swiperAllProjects: boolean;
   /** Message body font size in px */
   messageFontSize: number;
   /** Code font size in px */
@@ -46,6 +48,7 @@ export const DEFAULTS: AppearanceSettings = {
   swiperChipWidth: 130,
   swiperMaxVisible: 8,
   swiperVisible: true,
+  swiperAllProjects: false,
   messageFontSize: 13.5,
   codeFontSize: 12,
   borderRadius: 10,

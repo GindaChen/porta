@@ -298,6 +298,15 @@ export function SettingsPage() {
             </div>
             {appearance.swiperVisible && (
               <>
+                <div className="appearance-toggle-row">
+                  <span className="appearance-toggle-label">All projects</span>
+                  <button
+                    className={`appearance-toggle ${appearance.swiperAllProjects ? "on" : ""}`}
+                    onClick={() => updateAppearance("swiperAllProjects", !appearance.swiperAllProjects)}
+                  >
+                    <span className="appearance-toggle-thumb" />
+                  </button>
+                </div>
                 <SliderControl
                   label="Chip width"
                   value={appearance.swiperChipWidth}
