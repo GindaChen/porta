@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import type { ConversationEntry } from "../hooks/useConversations";
 import { useAppearance } from "../hooks/useAppearance";
 
@@ -69,6 +69,54 @@ function relativeTimeShort(iso: string): string {
   return `${days}d`;
 }
 
+// ── Long-press popover hook ──
+
+const LONG_PRESS_MS = 400;
+const POPOVER_TIMEOUT_MS = 3000;
+
+interface PopoverState {
+  text: string;
+  x: number;
+  y: number;
+}
+
+function useLongPressPopover() {
+  const [popover, setPopover] = useState<PopoverState | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const dismissRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const startPress = useCallback((text: string, clientX: number, clientY: number) => {
+    cancelPress();
+    timerRef.current = setTimeout(() => {
+      setPopover({ text, x: clientX, y: clientY });
+      // Auto-dismiss after a few seconds
+      dismissRef.current = setTimeout(() => {
+        setPopover(null);
+      }, POPOVER_TIMEOUT_MS);
+    }, LONG_PRESS_MS);
+  }, []);
+
+  const cancelPress = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setPopover(null);
+    cancelPress();
+    if (dismissRef.current) {
+      clearTimeout(dismissRef.current);
+      dismissRef.current = null;
+    }
+  }, [cancelPress]);
+
+  return { popover, startPress, cancelPress, dismiss };
+}
+
+// ── Component ──
+
 export function ChatSwiper({
   conversations,
   allConversations,
@@ -77,6 +125,7 @@ export function ChatSwiper({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { settings } = useAppearance();
+  const { popover, startPress, cancelPress, dismiss } = useLongPressPopover();
 
   // Auto-scroll to keep the active chip visible
   useEffect(() => {
@@ -93,14 +142,24 @@ export function ChatSwiper({
     }
   }, [activeId]);
 
+  // Dismiss popover on outside tap
+  useEffect(() => {
+    if (!popover) return;
+    const handler = () => dismiss();
+    document.addEventListener("touchstart", handler);
+    document.addEventListener("click", handler);
+    return () => {
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("click", handler);
+    };
+  }, [popover, dismiss]);
+
   const source = settings.swiperAllProjects ? allConversations : conversations;
 
   // Only show if there's more than 1 conversation
   if (source.length <= 1) return null;
 
   const visible = source.slice(0, settings.swiperMaxVisible);
-
-  // When showing all projects, color chips by project
   const showProjectColors = settings.swiperAllProjects;
 
   return (
@@ -119,7 +178,6 @@ export function ChatSwiper({
           else if (isError) statusClass = "error";
           else if (isIdle) statusClass = "done";
 
-          // Project-based coloring
           const project = extractProjectName(conv);
           const colors = showProjectColors ? projectColor(project) : null;
 
@@ -135,14 +193,26 @@ export function ChatSwiper({
               ? { background: colors.dot }
               : {};
 
+          const tooltipText = showProjectColors
+            ? `[${project}] ${conv.summary.summary}`
+            : conv.summary.summary;
+
           return (
             <button
               key={conv.id}
               data-chip-id={conv.id}
               className={`chat-swiper-chip ${statusClass}`}
               onClick={() => onSelect(conv.id)}
-              title={showProjectColors ? `[${project}] ${conv.summary.summary}` : conv.summary.summary}
               style={chipStyle}
+              // Long-press for tooltip (mobile)
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                startPress(tooltipText, touch.clientX, touch.clientY);
+              }}
+              onTouchEnd={cancelPress}
+              onTouchMove={cancelPress}
+              // Hover title for desktop
+              title={tooltipText}
             >
               <span className="chat-swiper-chip-dot" style={dotStyle} />
               <span className="chat-swiper-chip-label">
@@ -155,6 +225,23 @@ export function ChatSwiper({
           );
         })}
       </div>
+
+      {/* Long-press popover */}
+      {popover && (
+        <div
+          className="chip-popover"
+          style={{
+            left: Math.min(popover.x, window.innerWidth - 220),
+            top: popover.y - 48,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            dismiss();
+          }}
+        >
+          {popover.text}
+        </div>
+      )}
     </div>
   );
 }

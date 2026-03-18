@@ -6,6 +6,7 @@
   background: var(--bg-primary);
   padding: 8px 20px 4px;
   display: var(--swiper-display, block);
+  position: relative;
 }
 
 .chat-swiper-track {
@@ -140,5 +141,37 @@
 
   .chat-swiper-chip-time {
     font-size: 9px;
+  }
+}
+
+/* ── Long-press popover ── */
+
+.chip-popover {
+  position: fixed;
+  z-index: 9999;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+  pointer-events: auto;
+  animation: popover-fade-in 150ms ease;
+}
+
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
