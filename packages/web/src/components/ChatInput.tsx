@@ -5,6 +5,7 @@ import type { MediaAttachment } from "../types";
 import { prepareAttachments } from "../utils/imageAttachments";
 import { DEFAULT_MODEL } from "../constants";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import { LoopControls } from "./LoopControls";
 const ALLOWED_TYPES = [
   "image/png",
   "image/jpeg",
@@ -27,6 +28,8 @@ interface Props {
   disabled?: boolean;
   draft: string;
   onDraftChange: (text: string) => void;
+  /** Active conversation ID for loop controls */
+  sessionId?: string | null;
 }
 
 interface AttachmentPreview {
@@ -105,6 +108,7 @@ export function ChatInput({
   disabled,
   draft,
   onDraftChange,
+  sessionId,
 }: Props) {
   const [model, setModel] = useState<string | null>(DEFAULT_MODEL);
   const [plannerType, setPlannerType] = useState<PlannerType>("planning");
@@ -345,6 +349,9 @@ export function ChatInput({
             <div className="speech-interim-text">{interimText}</div>
           )}
         </div>
+
+        {/* Loop controls row */}
+        <LoopControls sessionId={sessionId ?? null} disabled={disabled} />
 
         <div className="chat-input-bottom">
           <div className="chat-input-bottom-left">

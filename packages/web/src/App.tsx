@@ -437,6 +437,7 @@ function ChatView() {
           disabled={!connected}
           draft={draftText}
           onDraftChange={handleDraftChange}
+          sessionId={activeId}
         />
       </div>
     </div>
