@@ -243,6 +243,8 @@ export function registerConversationRoutes(app: Hono): void {
       ? parseInt(c.req.query("limit")!, 10)
       : undefined;
 
+    const t0 = Date.now();
+
     try {
       let resolvedOffset = offset;
       let stepCount: number | undefined;
@@ -335,6 +337,8 @@ export function registerConversationRoutes(app: Hono): void {
       if (stepsArray.length > targetCount) {
         stepsArray = stepsArray.slice(0, targetCount);
       }
+
+      console.log(`[steps] ${id.slice(0, 8)}… ${stepsArray.length} steps in ${Date.now() - t0}ms (offset=${resolvedOffset})`);
 
       return c.json({
         steps: messageTracker.annotateSteps(id, resolvedOffset, stepsArray),

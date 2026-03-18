@@ -62,6 +62,8 @@ export function useStepsStream(
   const endOffsetRef = useRef(0);
   // Monotonic generation counter — prevents stale responses from overwriting.
   const genRef = useRef(0);
+  // Timestamp of last successful fetch — used to suppress redundant refetches.
+  const lastFetchAtRef = useRef(0);
 
   // ── HTTP: initial load (latest N steps) ──
   const totalRef = useRef(totalStepCount ?? 0);
@@ -111,6 +113,7 @@ export function useStepsStream(
       setSteps([...fetchedSteps]);
       setHasMore(offset > 0);
       setLoading(false);
+      lastFetchAtRef.current = Date.now();
       setError(null);
 
       // Return the total so WS can sync from the right point
@@ -350,6 +353,16 @@ export function useStepsStream(
 
   const syncLatestSteps = useCallback(
     async (reconnectMode: "always" | "if-running") => {
+      // Skip if a fetch just completed (prevents double-fetch on conversation switch)
+      if (Date.now() - lastFetchAtRef.current < 3000) {
+        // Still reconnect WS if needed
+        const socket = wsRef.current;
+        if (!socket || socket.readyState >= WebSocket.CLOSING) {
+          connectWs(endOffsetRef.current);
+        }
+        return;
+      }
+
       const gen = genRef.current;
 
       try {
