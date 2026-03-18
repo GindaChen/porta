@@ -153,7 +153,7 @@ async function tick(sessionId: string): Promise<void> {
 
     // 6. Send the message via the existing mutation infrastructure
     const metadata = await getMetadata(true);
-    const { count: preSendStepCount, instance } = await getStepCount(sessionId);
+    const { instance } = await getStepCount(sessionId);
 
     await runConversationMutation(sessionId, async () => {
       await rpcForConversation(
@@ -162,7 +162,12 @@ async function tick(sessionId: string): Promise<void> {
         {
           metadata,
           cascadeId: sessionId,
-          items: [{ type: "text", text: message }],
+          items: [{ userInputText: message }],
+          cascadeConfig: {
+            plannerConfig: {
+              plannerTypeConfig: { conversational: {} },
+            },
+          },
         },
         instance,
       );
@@ -244,7 +249,8 @@ export function startLoop(config: LoopConfig): LoopState {
 
   const state: LoopState = {
     ...config,
-    intervalMs: Math.max(60_000, config.intervalMs), // Min 1 minute
+    // 0 = "as soon as idle" → poll every 15s; otherwise min 60s
+    intervalMs: config.intervalMs <= 0 ? 15_000 : Math.max(60_000, config.intervalMs),
     maxIterations: config.maxIterations ?? 50,
     iterationCount: 0,
     lastSentAt: null,

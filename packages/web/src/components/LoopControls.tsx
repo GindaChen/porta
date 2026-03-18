@@ -185,10 +185,11 @@ export function LoopControls({ sessionId, disabled }: Props) {
             <input
               className="loop-config-input"
               type="number"
-              min={1}
+              min={0}
               max={120}
               value={intervalMin}
-              onChange={(e) => setIntervalMin(Number(e.target.value))}
+              onChange={(e) => setIntervalMin(Math.max(0, Number(e.target.value)))}
+              title="0 = send immediately when agent finishes"
             />
           </div>
 
