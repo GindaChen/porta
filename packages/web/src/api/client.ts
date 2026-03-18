@@ -171,4 +171,33 @@ export const api = {
       totalConversations: number;
       elapsedMs: number;
     }>(`/api/search?q=${encodeURIComponent(query)}`),
+
+  getSettings: () =>
+    request<Record<string, unknown>>("/api/settings"),
+
+  saveSettings: (settings: any) =>
+    request("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+
+  transcribe: async (audioBlob: Blob): Promise<{ text: string }> => {
+    const form = new FormData();
+    form.append("audio", audioBlob, "recording.webm");
+    const res = await fetch(`${API_BASE}/api/speech/transcribe`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      let msg: string;
+      try {
+        msg = JSON.parse(body).error ?? body;
+      } catch {
+        msg = body;
+      }
+      throw new Error(msg);
+    }
+    return res.json();
+  },
 };

@@ -360,6 +360,12 @@
   background: rgb(var(--c-error) / 0.18);
 }
 
+.chat-mic-btn.transcribing {
+  color: var(--text-accent);
+  opacity: 0.6;
+  animation: mic-pulse 1.5s ease-in-out infinite;
+}
+
 @keyframes mic-pulse {
   0%,
   100% {

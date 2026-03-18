@@ -11,6 +11,7 @@ import { ChatHeader } from "./components/ChatHeader";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
 import { WorkspaceSelector } from "./components/WorkspaceSelector";
+import { SettingsPage } from "./components/SettingsPage";
 import { IconFolder } from "./components/Icons";
 import { useConversations } from "./hooks/useConversations";
 import { usePolling } from "./hooks/usePolling";
@@ -26,6 +27,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
+      <Route path="/settings" element={<SettingsPage />} />
       <Route path="/:projectSlug" element={<ChatView />} />
       <Route path="/:projectSlug/:chatId" element={<ChatView />} />
     </Routes>

@@ -4,10 +4,7 @@ import { IconPaperclip, IconMic } from "./Icons";
 import type { MediaAttachment } from "../types";
 import { prepareAttachments } from "../utils/imageAttachments";
 import { DEFAULT_MODEL } from "../constants";
-import {
-  useSpeechRecognition,
-  speechRecognitionSupported,
-} from "../hooks/useSpeechRecognition";
+import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 const ALLOWED_TYPES = [
   "image/png",
   "image/jpeg",
@@ -129,7 +126,9 @@ export function ChatInput({
   );
 
   const {
+    isSupported: micSupported,
     isListening,
+    isTranscribing,
     interimText,
     toggle: toggleMic,
   } = useSpeechRecognition({ onTranscript: handleTranscript });
@@ -334,7 +333,7 @@ export function ChatInput({
           <textarea
             ref={textareaRef}
             className="chat-input"
-            placeholder={isListening ? "Listening..." : "Send a message..."}
+            placeholder={isListening ? "Listening…" : isTranscribing ? "Transcribing…" : "Send a message..."}
             value={draft}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
@@ -357,12 +356,12 @@ export function ChatInput({
             >
               <IconPaperclip size={18} />
             </button>
-            {speechRecognitionSupported && (
+            {micSupported && (
               <button
-                className={`chat-action-icon-btn chat-mic-btn ${isListening ? "recording" : ""}`}
+                className={`chat-action-icon-btn chat-mic-btn ${isListening ? "recording" : ""} ${isTranscribing ? "transcribing" : ""}`}
                 onClick={toggleMic}
-                title={isListening ? "Stop recording" : "Voice input"}
-                disabled={inputDisabled}
+                title={isListening ? "Stop recording" : isTranscribing ? "Transcribing…" : "Voice input"}
+                disabled={inputDisabled || isTranscribing}
               >
                 <IconMic size={18} />
               </button>

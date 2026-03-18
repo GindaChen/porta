@@ -16,6 +16,8 @@ import { registerWorkspaceRoutes } from "./routes/workspaces.js";
 import { registerFileRoutes } from "./routes/files.js";
 import { registerSearchRoutes } from "./routes/search.js";
 import { registerRpcPassthroughRoutes } from "./routes/rpcPassthrough.js";
+import { registerSettingsRoutes } from "./routes/settings.js";
+import { registerSpeechRoutes } from "./routes/speech.js";
 import {
   assertSupportedListenHost,
   formatListenAddress,
@@ -66,6 +68,8 @@ registerWorkspaceRoutes(app);
 registerFileRoutes(app);
 registerSearchRoutes(app);
 registerRpcPassthroughRoutes(app);
+registerSettingsRoutes(app);
+registerSpeechRoutes(app);
 
 // ── Start ──
 
