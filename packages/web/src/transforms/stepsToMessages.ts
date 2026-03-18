@@ -213,6 +213,18 @@ export function stepsToMessages(steps: TrajectoryStep[]): ChatMessage[] {
           .replace(/\b\w/g, (c) => c.toUpperCase());
       }
 
+      // Log unhandled step types to help debug rendering issues
+      if (isWaiting) {
+        console.warn(
+          `[stepsToMessages] Unhandled WAITING step: type=${type}, tool=${toolName ?? "?"}`,
+          step,
+        );
+      } else {
+        console.debug(
+          `[stepsToMessages] Catch-all step: type=${type}, tool=${toolName ?? "?"}`,
+        );
+      }
+
       messages.push({
         role: "system",
         content: isWaiting ? "" : label,
