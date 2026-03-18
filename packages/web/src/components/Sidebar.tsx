@@ -1,5 +1,4 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import type { ConversationEntry } from "../hooks/useConversations";
 import { api } from "../api/client";
 import {
@@ -112,7 +111,6 @@ export function Sidebar({
   isOpen,
   onToggle,
 }: Props) {
-  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -200,11 +198,6 @@ export function Sidebar({
         setSearchOpen(true);
         setTimeout(() => searchInputRef.current?.focus(), 50);
       },
-    },
-    {
-      icon: <span style={{ fontSize: 14, lineHeight: 1 }}>⚙</span>,
-      label: "Settings",
-      onClick: () => navigate("/settings"),
     },
   ];
 

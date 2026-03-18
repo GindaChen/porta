@@ -6,9 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { IconX } from "./Icons";
 
 type Provider = "deepinfra" | "elevenlabs";
 
@@ -39,7 +37,6 @@ const PROVIDER_INFO: Record<
 };
 
 export function SettingsPage() {
-  const navigate = useNavigate();
   const [provider, setProvider] = useState<Provider>("deepinfra");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
@@ -103,13 +100,6 @@ export function SettingsPage() {
       <div className="settings-card">
         <div className="settings-header">
           <h2 className="settings-title">Settings</h2>
-          <button
-            className="settings-close-btn"
-            onClick={() => navigate(-1)}
-            title="Close"
-          >
-            <IconX size={18} />
-          </button>
         </div>
 
         <section className="settings-section">

@@ -12,6 +12,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
 import { WorkspaceSelector } from "./components/WorkspaceSelector";
 import { SettingsPage } from "./components/SettingsPage";
+import { TabBar } from "./components/TabBar";
 import { IconFolder } from "./components/Icons";
 import { useConversations } from "./hooks/useConversations";
 import { usePolling } from "./hooks/usePolling";
@@ -25,12 +26,15 @@ import type { PlannerType } from "./components/ChatInput";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/:projectSlug" element={<ChatView />} />
-      <Route path="/:projectSlug/:chatId" element={<ChatView />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/:projectSlug" element={<ChatView />} />
+        <Route path="/:projectSlug/:chatId" element={<ChatView />} />
+      </Routes>
+      <TabBar />
+    </>
   );
 }
 
