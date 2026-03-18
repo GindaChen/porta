@@ -76,10 +76,12 @@ export function LoopControls({ sessionId, disabled }: Props) {
   }, [sessionId]);
 
   useEffect(() => {
-    fetchStatus();
+    // Defer first fetch so it doesn't compete with conversation loading
+    const initTimer = setTimeout(fetchStatus, 2000);
     // Poll every 10s while visible
     pollRef.current = setInterval(fetchStatus, 10_000);
     return () => {
+      clearTimeout(initTimer);
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [fetchStatus]);
