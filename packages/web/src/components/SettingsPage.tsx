@@ -1,8 +1,7 @@
 /**
  * Settings Page
  *
- * Configure speech recognition provider and API key.
- * Accessible at /settings route.
+ * Configure notifications, speech recognition provider, and API key.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -36,6 +35,9 @@ const PROVIDER_INFO: Record<
   },
 };
 
+const notificationsSupported =
+  typeof window !== "undefined" && "Notification" in window;
+
 export function SettingsPage() {
   const [provider, setProvider] = useState<Provider>("deepinfra");
   const [apiKey, setApiKey] = useState("");
@@ -45,6 +47,11 @@ export function SettingsPage() {
   );
   const [errorMsg, setErrorMsg] = useState("");
   const [loaded, setLoaded] = useState(false);
+
+  // Notification state
+  const [notifPermission, setNotifPermission] = useState<string>(
+    notificationsSupported ? Notification.permission : "denied",
+  );
 
   // Load existing settings
   useEffect(() => {
@@ -83,6 +90,22 @@ export function SettingsPage() {
     }
   }, [provider, apiKey, model]);
 
+  const handleEnableNotifications = useCallback(async () => {
+    if (!notificationsSupported) return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+    if (result === "granted") {
+      try {
+        new Notification("🔔 Notifications Enabled", {
+          body: "You'll be notified when tasks complete.",
+          icon: "/favicon.ico",
+        });
+      } catch {
+        // May fail in some contexts
+      }
+    }
+  }, []);
+
   if (!loaded) {
     return (
       <div className="settings-page">
@@ -102,6 +125,46 @@ export function SettingsPage() {
           <h2 className="settings-title">Settings</h2>
         </div>
 
+        {/* ── Notifications ── */}
+        <section className="settings-section">
+          <h3 className="settings-section-title">Notifications</h3>
+          <p className="settings-section-desc">
+            Get notified when a task finishes running.
+          </p>
+
+          {!notificationsSupported ? (
+            <p
+              className="settings-section-desc"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Notifications are not supported in this browser.
+            </p>
+          ) : notifPermission === "granted" ? (
+            <div className="settings-notif-status settings-notif-granted">
+              <span>✅</span>
+              <span>Notifications enabled</span>
+            </div>
+          ) : notifPermission === "denied" ? (
+            <div className="settings-notif-status settings-notif-denied">
+              <span>🚫</span>
+              <span>
+                Notifications blocked. Enable them in your browser/device
+                settings for this site.
+              </span>
+            </div>
+          ) : (
+            <button
+              className="settings-save-btn"
+              onClick={handleEnableNotifications}
+            >
+              Enable Notifications
+            </button>
+          )}
+        </section>
+
+        <hr className="settings-divider" />
+
+        {/* ── Speech Recognition ── */}
         <section className="settings-section">
           <h3 className="settings-section-title">Speech Recognition</h3>
           <p className="settings-section-desc">

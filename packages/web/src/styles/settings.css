@@ -175,6 +175,32 @@
   padding: 40px 0;
 }
 
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 20px 0;
+}
+
+.settings-notif-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.settings-notif-granted {
+  background: rgb(var(--c-success) / 0.1);
+  color: rgb(var(--c-success));
+}
+
+.settings-notif-denied {
+  background: rgb(var(--c-error) / 0.08);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 /* ── Mobile ── */
 
 @media (max-width: 480px) {

@@ -11,7 +11,7 @@
 /* ── Bottom Tab Bar ── */
 
 .tab-bar {
-  display: none; /* Hidden on desktop by default — shown via media query */
+  display: flex; /* Always visible */
   position: fixed;
   bottom: 0;
   left: 0;
@@ -60,20 +60,11 @@
   line-height: 1;
 }
 
-/* ── Show tab bar on mobile ── */
+/* Bottom padding so content doesn't hide behind tab bar */
+.app-layout {
+  padding-bottom: calc(48px + env(safe-area-inset-bottom));
+}
 
-@media (max-width: 480px) {
-  .tab-bar {
-    display: flex;
-  }
-
-  /* Add bottom padding to main content so it doesn't get hidden behind tab bar */
-  .app-layout {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom));
-  }
-
-  /* Settings page also needs bottom padding */
-  .settings-page {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom));
-  }
+.settings-page {
+  padding-bottom: calc(48px + env(safe-area-inset-bottom));
 }
