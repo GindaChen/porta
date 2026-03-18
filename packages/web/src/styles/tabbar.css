@@ -1,3 +1,13 @@
+/* ── Tab Panels — both mounted, visibility toggled ── */
+
+.tab-panel-active {
+  display: contents; /* Contribute to layout as if wrapper doesn't exist */
+}
+
+.tab-panel-hidden {
+  display: none; /* Hidden but stays in React tree (state preserved) */
+}
+
 /* ── Bottom Tab Bar ── */
 
 .tab-bar {

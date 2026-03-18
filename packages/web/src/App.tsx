@@ -19,6 +19,8 @@ import { usePolling } from "./hooks/usePolling";
 import { useWorkspaces, slugFromUri } from "./hooks/useWorkspaces";
 import { useDraftText } from "./hooks/useDraftText";
 import { useChatActions } from "./hooks/useChatActions";
+import { useNotifications } from "./hooks/useNotifications";
+import { TabProvider, useTab } from "./hooks/useTab";
 import { api } from "./api/client";
 import { isUnconfirmedOptimisticMessage } from "./utils/optimisticMessages";
 import type { HealthResponse, MediaAttachment } from "./types";
@@ -26,13 +28,31 @@ import type { PlannerType } from "./components/ChatInput";
 
 export default function App() {
   return (
+    <TabProvider>
+      <AppContent />
+    </TabProvider>
+  );
+}
+
+function AppContent() {
+  const { activeTab } = useTab();
+
+  return (
     <>
-      <Routes>
-        <Route path="/" element={<RootRedirect />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/:projectSlug" element={<ChatView />} />
-        <Route path="/:projectSlug/:chatId" element={<ChatView />} />
-      </Routes>
+      {/* Chat tab: always mounted, hidden via CSS when settings is active */}
+      <div className={`tab-panel ${activeTab === "chat" ? "tab-panel-active" : "tab-panel-hidden"}`}>
+        <Routes>
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/:projectSlug" element={<ChatView />} />
+          <Route path="/:projectSlug/:chatId" element={<ChatView />} />
+        </Routes>
+      </div>
+
+      {/* Settings tab: always mounted, hidden via CSS when chat is active */}
+      <div className={`tab-panel ${activeTab === "settings" ? "tab-panel-active" : "tab-panel-hidden"}`}>
+        <SettingsPage />
+      </div>
+
       <TabBar />
     </>
   );
@@ -78,6 +98,9 @@ function ChatView() {
   const isMobile = () => window.innerWidth <= 480;
   const { conversations, loading, refresh } = useConversations(15_000);
   const { data: health } = usePolling<HealthResponse>(api.health, 30_000);
+
+  // ── Notifications: alert when a task finishes ──
+  useNotifications(conversations);
 
   // ── Hooks ──
   const { workspaces, currentWorkspaceUri } = useWorkspaces(

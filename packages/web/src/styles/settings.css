@@ -1,7 +1,7 @@
 /* ── Settings Page ── */
 
 .settings-page {
-  flex: 1;
+  min-height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
