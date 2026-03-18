@@ -40,6 +40,8 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+          // Import push notification handler into the service worker
+          importScripts: ["/sw-push.js"],
         },
         manifest: false, // Use our existing public/manifest.json
         injectRegister: "script-defer",

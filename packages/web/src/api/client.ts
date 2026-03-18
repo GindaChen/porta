@@ -200,4 +200,30 @@ export const api = {
     }
     return res.json();
   },
+
+  // ── Push Notifications ──
+
+  getVapidKey: () =>
+    request<{ publicKey: string }>("/api/push/vapid-key"),
+
+  subscribePush: (subscription: PushSubscriptionJSON) =>
+    request("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify(subscription),
+    }),
+
+  unsubscribePush: (endpoint: string) =>
+    request("/api/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    }),
+
+  getPushStatus: () =>
+    request<{ subscriptionCount: number; pollIntervalMs: number }>("/api/push/status"),
+
+  setPollInterval: (ms: number) =>
+    request<{ pollIntervalMs: number }>("/api/push/poll-interval", {
+      method: "PUT",
+      body: JSON.stringify({ pollIntervalMs: ms }),
+    }),
 };

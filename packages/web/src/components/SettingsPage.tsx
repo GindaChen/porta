@@ -1,7 +1,7 @@
 /**
  * Settings Page
  *
- * Configure notifications, speech recognition provider, and API key.
+ * Configure push notifications, poll interval, and speech recognition.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -38,6 +38,11 @@ const PROVIDER_INFO: Record<
 const notificationsSupported =
   typeof window !== "undefined" && "Notification" in window;
 
+const pushSupported =
+  typeof window !== "undefined" &&
+  "serviceWorker" in navigator &&
+  "PushManager" in window;
+
 export function SettingsPage() {
   const [provider, setProvider] = useState<Provider>("deepinfra");
   const [apiKey, setApiKey] = useState("");
@@ -48,12 +53,13 @@ export function SettingsPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  // Notification state
-  const [notifPermission, setNotifPermission] = useState<string>(
-    notificationsSupported ? Notification.permission : "denied",
-  );
+  // Push notification state
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState("");
+  const [pollIntervalSec, setPollIntervalSec] = useState(10);
 
-  // Load existing settings
+  // Load existing settings + push status
   useEffect(() => {
     api
       .getSettings()
@@ -68,6 +74,20 @@ export function SettingsPage() {
       .catch(() => {
         setLoaded(true);
       });
+
+    // Check push status
+    api.getPushStatus().then((s) => {
+      setPollIntervalSec(Math.round(s.pollIntervalMs / 1000));
+    }).catch(() => {});
+
+    // Check if already subscribed
+    if (pushSupported) {
+      navigator.serviceWorker?.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          setPushSubscribed(!!sub);
+        });
+      });
+    }
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -90,19 +110,67 @@ export function SettingsPage() {
     }
   }, [provider, apiKey, model]);
 
-  const handleEnableNotifications = useCallback(async () => {
-    if (!notificationsSupported) return;
-    const result = await Notification.requestPermission();
-    setNotifPermission(result);
-    if (result === "granted") {
-      try {
-        new Notification("🔔 Notifications Enabled", {
-          body: "You'll be notified when tasks complete.",
-          icon: "/favicon.ico",
-        });
-      } catch {
-        // May fail in some contexts
+  const handleSubscribePush = useCallback(async () => {
+    setPushLoading(true);
+    setPushError("");
+    try {
+      // 1. Request notification permission
+      if (notificationsSupported) {
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") {
+          setPushError("Notification permission denied. Check your browser/device settings.");
+          setPushLoading(false);
+          return;
+        }
       }
+
+      // 2. Get VAPID public key from proxy
+      const { publicKey } = await api.getVapidKey();
+
+      // 3. Subscribe via PushManager
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+
+      // 4. Send subscription to proxy
+      await api.subscribePush(sub.toJSON());
+
+      setPushSubscribed(true);
+
+      // Send a test push via the proxy to verify
+      // (The proxy will use web-push to push to our subscription)
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : "Failed to subscribe");
+    } finally {
+      setPushLoading(false);
+    }
+  }, []);
+
+  const handleUnsubscribePush = useCallback(async () => {
+    setPushLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await api.unsubscribePush(sub.endpoint);
+        await sub.unsubscribe();
+      }
+      setPushSubscribed(false);
+    } catch {
+      // Ignore
+    } finally {
+      setPushLoading(false);
+    }
+  }, []);
+
+  const handlePollIntervalChange = useCallback(async (sec: number) => {
+    setPollIntervalSec(sec);
+    try {
+      await api.setPollInterval(sec * 1000);
+    } catch {
+      // Ignore
     }
   }, []);
 
@@ -117,6 +185,7 @@ export function SettingsPage() {
   }
 
   const info = PROVIDER_INFO[provider];
+  const isHttps = location.protocol === "https:";
 
   return (
     <div className="settings-page">
@@ -125,40 +194,73 @@ export function SettingsPage() {
           <h2 className="settings-title">Settings</h2>
         </div>
 
-        {/* ── Notifications ── */}
+        {/* ── Push Notifications ── */}
         <section className="settings-section">
-          <h3 className="settings-section-title">Notifications</h3>
+          <h3 className="settings-section-title">Push Notifications</h3>
           <p className="settings-section-desc">
-            Get notified when a task finishes running.
+            Get notified on your lock screen when a task finishes — even when
+            the app is closed.
           </p>
 
-          <div className="settings-notif-status settings-notif-granted">
-            <span>🔔</span>
-            <span>In-app alerts active (toast + sound)</span>
-          </div>
+          {!isHttps ? (
+            <div className="settings-notif-status settings-notif-denied">
+              <span>🔒</span>
+              <span>
+                Push notifications require HTTPS. Access Porta via{" "}
+                <strong>https://</strong> to enable.
+              </span>
+            </div>
+          ) : !pushSupported ? (
+            <div className="settings-notif-status settings-notif-denied">
+              <span>🚫</span>
+              <span>Push notifications are not supported in this browser.</span>
+            </div>
+          ) : pushSubscribed ? (
+            <>
+              <div className="settings-notif-status settings-notif-granted">
+                <span>✅</span>
+                <span>Push notifications enabled</span>
+              </div>
 
-          {notificationsSupported && notifPermission !== "granted" && notifPermission !== "denied" && (
+              <label className="settings-label" style={{ marginTop: 8 }}>
+                Check every
+              </label>
+              <div className="settings-poll-row">
+                <input
+                  className="settings-input"
+                  type="number"
+                  min={3}
+                  max={60}
+                  value={pollIntervalSec}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v)) handlePollIntervalChange(v);
+                  }}
+                  style={{ width: 70, textAlign: "center" }}
+                />
+                <span className="settings-poll-unit">seconds</span>
+              </div>
+
+              <button
+                className="settings-save-btn"
+                onClick={handleUnsubscribePush}
+                disabled={pushLoading}
+                style={{ marginTop: 8, background: "var(--bg-hover)", color: "var(--text-secondary)" }}
+              >
+                Disable Push
+              </button>
+            </>
+          ) : (
             <button
               className="settings-save-btn"
-              onClick={handleEnableNotifications}
-              style={{ marginTop: 4 }}
+              onClick={handleSubscribePush}
+              disabled={pushLoading}
             >
-              Also Enable Push Notifications
+              {pushLoading ? "Enabling…" : "Enable Push Notifications"}
             </button>
           )}
 
-          {notificationsSupported && notifPermission === "granted" && (
-            <div className="settings-notif-status settings-notif-granted" style={{ marginTop: 4 }}>
-              <span>✅</span>
-              <span>Push notifications also enabled</span>
-            </div>
-          )}
-
-          {!notificationsSupported && (
-            <p className="settings-section-desc" style={{ color: "var(--text-tertiary)", marginTop: 4, fontSize: 11 }}>
-              Push notifications require HTTPS. In-app alerts work over HTTP.
-            </p>
-          )}
+          {pushError && <p className="settings-error">{pushError}</p>}
         </section>
 
         <hr className="settings-divider" />
@@ -233,4 +335,16 @@ export function SettingsPage() {
       </div>
     </div>
   );
+}
+
+// Helper: convert base64 VAPID key to Uint8Array for pushManager.subscribe()
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray as Uint8Array<ArrayBuffer>;
 }

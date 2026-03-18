@@ -264,6 +264,18 @@
     height: 36px;
   }
 
+  .chat-empty .model-selector-btn {
+    font-size: 14px;
+    padding: 12px 16px 12px 18px;
+    min-width: 180px;
+    max-width: 260px;
+  }
+
+  .chat-empty .model-option {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
   /* ── Search modal ── */
 
   .search-modal {

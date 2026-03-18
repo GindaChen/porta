@@ -201,6 +201,17 @@
   line-height: 1.4;
 }
 
+.settings-poll-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-poll-unit {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 /* ── Mobile ── */
 
 @media (max-width: 480px) {

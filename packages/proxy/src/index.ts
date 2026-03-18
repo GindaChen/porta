@@ -18,6 +18,8 @@ import { registerSearchRoutes } from "./routes/search.js";
 import { registerRpcPassthroughRoutes } from "./routes/rpcPassthrough.js";
 import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerSpeechRoutes } from "./routes/speech.js";
+import { registerPushRoutes } from "./routes/push.js";
+import { initPushService } from "./push.js";
 import {
   assertSupportedListenHost,
   formatListenAddress,
@@ -70,6 +72,7 @@ registerSearchRoutes(app);
 registerRpcPassthroughRoutes(app);
 registerSettingsRoutes(app);
 registerSpeechRoutes(app);
+registerPushRoutes(app);
 
 // ── Start ──
 
@@ -96,4 +99,8 @@ void discovery
 
 server.listen(PORT, HOST, () => {
   console.log(`✅ Porta proxy listening on ${listenAddress}`);
+  // Initialize push notification service (background poller)
+  void initPushService().catch((err) =>
+    console.warn(`⚠️ Push service init failed: ${(err as Error).message}`),
+  );
 });

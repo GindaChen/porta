@@ -34,7 +34,7 @@ export function WorkspaceSelector({ workspaces, selected, onSelect }: Props) {
         title="Select workspace"
       >
         <span className="model-selector-label">
-          <IconFolder size={12} /> {activeLabel}
+          <IconFolder size={16} /> {activeLabel}
         </span>
         <span className="model-selector-caret">▾</span>
       </button>
