@@ -254,6 +254,24 @@ export function ChatSwiper({
   const isGrid = settings.swiperLayout === "grid";
   const gridPerPage = settings.swiperGridColumns * settings.swiperGridRows;
 
+  // Swipe gesture for grid pagination
+  const touchStartX = useRef<number | null>(null);
+  const handleGridTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isGrid) return;
+    touchStartX.current = e.touches[0].clientX;
+  }, [isGrid]);
+  const handleGridTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isGrid || touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    const SWIPE_THRESHOLD = 50;
+    if (dx < -SWIPE_THRESHOLD) {
+      setGridPage((p) => p + 1); // Swipe left → next page (clamped in render)
+    } else if (dx > SWIPE_THRESHOLD) {
+      setGridPage((p) => Math.max(0, p - 1)); // Swipe right → prev page
+    }
+  }, [isGrid]);
+
   // Auto-scroll to keep the active chip visible (scroll mode only)
   useEffect(() => {
     if (isGrid || !scrollRef.current || !activeId) return;
@@ -305,7 +323,9 @@ export function ChatSwiper({
   let totalPages = 1;
   if (isGrid) {
     totalPages = Math.ceil(sorted.length / gridPerPage);
-    const safePage = Math.min(gridPage, totalPages - 1);
+    const safePage = Math.max(0, Math.min(gridPage, totalPages - 1));
+    // Clamp gridPage if it drifted past the end
+    if (safePage !== gridPage) setGridPage(safePage);
     visible = sorted.slice(safePage * gridPerPage, (safePage + 1) * gridPerPage);
   } else {
     visible = sorted.slice(0, settings.swiperMaxVisible);
@@ -322,7 +342,11 @@ export function ChatSwiper({
     : {};
 
   return (
-    <div className="chat-swiper">
+    <div
+      className="chat-swiper"
+      onTouchStart={isGrid ? handleGridTouchStart : undefined}
+      onTouchEnd={isGrid ? handleGridTouchEnd : undefined}
+    >
       <div className={trackClass} ref={scrollRef} style={trackStyle}>
         {visible.map((conv) => {
           const isActive = conv.id === activeId;
@@ -412,22 +436,16 @@ export function ChatSwiper({
             disabled={gridPage <= 0}
             onClick={() => setGridPage((p) => Math.max(0, p - 1))}
           >
-            ‹ Prev
+            ‹
           </button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i}
-              className={i === Math.min(gridPage, totalPages - 1) ? "active" : ""}
-              onClick={() => setGridPage(i)}
-            >
-              {i + 1}
-            </button>
-          ))}
+          <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
+            {Math.min(gridPage + 1, totalPages)}/{totalPages}
+          </span>
           <button
             disabled={gridPage >= totalPages - 1}
             onClick={() => setGridPage((p) => Math.min(totalPages - 1, p + 1))}
           >
-            Next ›
+            ›
           </button>
         </div>
       )}

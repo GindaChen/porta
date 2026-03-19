@@ -48,21 +48,27 @@
 /* Grid pagination controls */
 .chat-swiper-grid-nav {
   display: flex;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
   padding: 4px 0 0;
 }
 
 .chat-swiper-grid-nav button {
   background: none;
-  border: none;
-  color: var(--text-tertiary);
-  font-size: 11px;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 14px;
   font-family: var(--font-sans);
   cursor: pointer;
-  padding: 2px 8px;
+  padding: 4px 12px;
+  min-width: 36px;
+  min-height: 32px;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-swiper-grid-nav button:hover {
@@ -70,13 +76,8 @@
   color: var(--text-primary);
 }
 
-.chat-swiper-grid-nav button.active {
-  background: rgb(var(--c-accent) / 0.15);
-  color: var(--text-accent);
-}
-
 .chat-swiper-grid-nav button:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: default;
 }
 
