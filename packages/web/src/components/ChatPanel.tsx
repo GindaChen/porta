@@ -16,6 +16,7 @@ import {
   mergeOptimisticMessages,
 } from "../utils/optimisticMessages";
 import { renderMarkdown } from "../utils/markdown";
+import { useAppearance } from "../hooks/useAppearance";
 import { MarkdownContent } from "./MarkdownContent";
 import {
   CommandCard,
@@ -38,7 +39,7 @@ import {
   IconMessageCircle,
   IconAlertTriangle,
 } from "./Icons";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, TrajectoryStep } from "../types";
 
 interface Props {
   cascadeId: string;
@@ -120,6 +121,49 @@ function MsgIcon({ name }: { name?: string }) {
   }
 }
 
+/** Collapsible raw JSON viewer for catch-all step cards */
+function RawJsonToggle({ step }: { step: TrajectoryStep }) {
+  const [wrap, setWrap] = useState(false);
+  const [fontSize, setFontSize] = useState(10);
+  const [copied, setCopied] = useState(false);
+  const cleaned = { ...step } as Record<string, unknown>;
+  delete cleaned.metadata;
+  const json = JSON.stringify(cleaned, null, 2);
+
+  const cycleFontSize = () => setFontSize((s) => (s >= 14 ? 9 : s + 1));
+  const handleCopy = () => {
+    navigator.clipboard.writeText(json).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <details className="raw-json-toggle">
+      <summary className="raw-json-summary">
+        <span className="raw-json-chevron">›</span>
+        <span>Raw JSON</span>
+        <span className="raw-json-type">{step.type?.replace("CORTEX_STEP_TYPE_", "")}</span>
+      </summary>
+      <div className="raw-json-toolbar">
+        <button className="raw-json-wrap-btn" onClick={handleCopy}>
+          {copied ? "Copied!" : "Copy"}
+        </button>
+        <button className="raw-json-wrap-btn" onClick={cycleFontSize}>
+          {fontSize}px
+        </button>
+        <button
+          className={`raw-json-wrap-btn ${wrap ? "on" : ""}`}
+          onClick={() => setWrap((v) => !v)}
+        >
+          {wrap ? "Nowrap" : "Wrap"}
+        </button>
+      </div>
+      <pre className={`raw-json-content ${wrap ? "wrap" : ""}`} style={{ fontSize }}>{json}</pre>
+    </details>
+  );
+}
+
 function SystemMessage({
   msg,
   onFilePermission,
@@ -139,6 +183,7 @@ function SystemMessage({
     approved: boolean,
   ) => Promise<void>;
 }) {
+  const { settings: { showRawJson } } = useAppearance();
   const renderedContent = useMemo(
     () => renderMarkdown(msg.content ?? ""),
     [msg.content],
@@ -201,6 +246,7 @@ function SystemMessage({
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
         </div>
+        {msg.step && showRawJson && <RawJsonToggle step={msg.step} />}
       </div>
     </div>
   );

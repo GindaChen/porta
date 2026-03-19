@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import { IconCamera } from "./Icons";
+import type { PlannerType } from "./ChatInput";
 
 interface ModelConfig {
   label: string;
@@ -10,12 +11,24 @@ interface ModelConfig {
   quotaInfo?: { remainingFraction: number };
 }
 
+const PLANNER_OPTIONS: { value: PlannerType; label: string; desc: string }[] = [
+  { value: "conversational", label: "Fast", desc: "Direct responses" },
+  { value: "planning", label: "Plan", desc: "Multi-step structured" },
+];
+
 interface Props {
   selectedModel: string | null;
-  onSelect: (model: string) => void;
+  onSelectModel: (model: string) => void;
+  plannerType: PlannerType;
+  onSelectPlanner: (v: PlannerType) => void;
 }
 
-export function ModelSelector({ selectedModel, onSelect }: Props) {
+export function ModelSelector({
+  selectedModel,
+  onSelectModel,
+  plannerType,
+  onSelectPlanner,
+}: Props) {
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [defaultModel, setDefaultModel] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -58,8 +71,10 @@ export function ModelSelector({ selectedModel, onSelect }: Props) {
   }, [open]);
 
   const active = selectedModel ?? defaultModel;
-  const activeLabel =
+  const activeModelLabel =
     models.find((m) => m.modelOrAlias.model === active)?.label ?? "Model";
+  const activePlannerLabel =
+    PLANNER_OPTIONS.find((o) => o.value === plannerType)?.label ?? "Plan";
 
   return (
     <div className="model-selector" ref={ref}>
@@ -69,13 +84,19 @@ export function ModelSelector({ selectedModel, onSelect }: Props) {
           if (fetchError || models.length === 0) fetchModels();
           setOpen((v) => !v);
         }}
-        title="Select model"
+        title="Model & mode"
       >
-        <span className="model-selector-label">{activeLabel}</span>
+        <span className="model-selector-label">
+          {activeModelLabel}
+          <span className="model-selector-divider">·</span>
+          {activePlannerLabel}
+        </span>
         <span className="model-selector-caret">▾</span>
       </button>
       {open && (
         <div className="model-selector-dropdown">
+          {/* Models section */}
+          <div className="model-dropdown-section-label">Model</div>
           {fetchError && (
             <button
               className="model-option"
@@ -96,7 +117,7 @@ export function ModelSelector({ selectedModel, onSelect }: Props) {
                 key={m.modelOrAlias.model}
                 className={`model-option ${isActive ? "active" : ""}`}
                 onClick={() => {
-                  onSelect(m.modelOrAlias.model);
+                  onSelectModel(m.modelOrAlias.model);
                   setOpen(false);
                 }}
               >
@@ -121,6 +142,25 @@ export function ModelSelector({ selectedModel, onSelect }: Props) {
               </button>
             );
           })}
+
+          {/* Divider */}
+          <div className="model-dropdown-divider" />
+
+          {/* Mode section */}
+          <div className="model-dropdown-section-label">Mode</div>
+          {PLANNER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              className={`model-option ${plannerType === opt.value ? "active" : ""}`}
+              onClick={() => {
+                onSelectPlanner(opt.value);
+                setOpen(false);
+              }}
+            >
+              <span className="model-option-label">{opt.label}</span>
+              <span className="model-option-meta">{opt.desc}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

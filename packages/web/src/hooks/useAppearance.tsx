@@ -44,10 +44,16 @@ export interface AppearanceSettings {
   swiperGridColumns: number;
   /** Grid rows per page (only used in grid mode) */
   swiperGridRows: number;
+  /** Enable swipe gestures on grid */
+  swiperSwipeGestures: boolean;
+  /** Show pagination buttons in grid mode */
+  swiperShowPagination: boolean;
   /** Per-project color overrides: project name → hex color */
   projectColorOverrides: Record<string, string>;
   /** Model selector button width in px */
   modelSelectorWidth: number;
+  /** Chat textarea min-height in px */
+  chatTextareaHeight: number;
   /** Message body font size in px */
   messageFontSize: number;
   /** Code font size in px */
@@ -58,6 +64,12 @@ export interface AppearanceSettings {
   density: "compact" | "normal" | "spacious";
   /** Show in-app toast notifications */
   showToasts: boolean;
+  /** Show raw JSON toggle on system messages */
+  showRawJson: boolean;
+  /** Show microphone button in chat input */
+  showMicButton: boolean;
+  /** Mute push notifications temporarily */
+  mutePush: boolean;
 }
 
 // ── Defaults ──
@@ -76,13 +88,19 @@ export const DEFAULTS: AppearanceSettings = {
   swiperLayout: "scroll",
   swiperGridColumns: 4,
   swiperGridRows: 2,
+  swiperSwipeGestures: true,
+  swiperShowPagination: true,
   projectColorOverrides: {},
   modelSelectorWidth: 180,
+  chatTextareaHeight: 36,
   messageFontSize: 13.5,
   codeFontSize: 12,
   borderRadius: 10,
   density: "normal",
   showToasts: true,
+  showRawJson: false,
+  showMicButton: true,
+  mutePush: false,
 };
 
 // ── Theme presets ──
@@ -213,6 +231,9 @@ function applyToDOM(s: AppearanceSettings) {
 
   // Model selector
   el.setProperty("--model-selector-width", `${s.modelSelectorWidth}px`);
+
+  // Chat input
+  el.setProperty("--chat-textarea-height", `${s.chatTextareaHeight}px`);
 
   // Text
   el.setProperty("--msg-font-size", `${s.messageFontSize}px`);

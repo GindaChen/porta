@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type { ConversationEntry } from "../hooks/useConversations";
 import { useAppearance } from "../hooks/useAppearance";
+import { haptic } from "../utils/haptics";
 
 interface Props {
   /** Conversations scoped to the current project */
@@ -120,7 +121,7 @@ function useLongPressMenu() {
       cancelPress();
       timerRef.current = setTimeout(() => {
         // Haptic feedback on supported devices
-        if (navigator.vibrate) navigator.vibrate(10);
+        haptic("medium");
         setMenu({ convId, title, project, x: clientX, y: clientY });
       }, LONG_PRESS_MS);
     },
@@ -344,8 +345,8 @@ export function ChatSwiper({
   return (
     <div
       className="chat-swiper"
-      onTouchStart={isGrid ? handleGridTouchStart : undefined}
-      onTouchEnd={isGrid ? handleGridTouchEnd : undefined}
+      onTouchStart={isGrid && settings.swiperSwipeGestures ? handleGridTouchStart : undefined}
+      onTouchEnd={isGrid && settings.swiperSwipeGestures ? handleGridTouchEnd : undefined}
     >
       <div className={trackClass} ref={scrollRef} style={trackStyle}>
         {visible.map((conv) => {
@@ -391,7 +392,10 @@ export function ChatSwiper({
               data-chip-id={conv.id}
               className={classes.join(" ")}
               onClick={() => {
-                if (!menu) onSelect(conv.id);
+                if (!menu) {
+                  haptic("light");
+                  onSelect(conv.id);
+                }
               }}
               style={chipStyle}
               onTouchStart={(e) => {
@@ -430,7 +434,7 @@ export function ChatSwiper({
       </div>
 
       {/* Grid pagination */}
-      {isGrid && totalPages > 1 && (
+      {isGrid && totalPages > 1 && settings.swiperShowPagination && (
         <div className="chat-swiper-grid-nav">
           <button
             disabled={gridPage <= 0}

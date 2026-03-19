@@ -1,13 +1,13 @@
 /**
- * LoopControls — inline autopilot loop panel for the chat input area.
+ * LoopControls — compact autopilot button with popover.
  *
- * Shows a compact bar with:
- *   - Start / Stop button
- *   - Status indicator (iteration count, last sent)
- *   - Expandable config (interval, max iterations, messages)
+ * Shows a small icon button in the chat input bar:
+ *   - Gray dot when idle, blue pulsing dot when active
+ *   - Click opens a floating popover with config + start/stop
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client";
 
 interface Props {
@@ -31,7 +31,6 @@ const DEFAULT_MESSAGES = [
   "Check your progress. Are there remaining items? Continue.",
 ];
 
-
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const secs = Math.floor(diff / 1000);
@@ -44,17 +43,19 @@ function relativeTime(iso: string): string {
 
 export function LoopControls({ sessionId, disabled }: Props) {
   const [loop, setLoop] = useState<LoopState | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Config state (for starting a new loop)
-  const [intervalMin, setIntervalMin] = useState(5); // minutes
+  // Config state
+  const [intervalMin, setIntervalMin] = useState(5);
   const [maxIter, setMaxIter] = useState(50);
   const [messages, setMessages] = useState<string[]>(DEFAULT_MESSAGES);
   const [editingMessages, setEditingMessages] = useState(false);
   const [messagesText, setMessagesText] = useState("");
 
   const pollRef = useRef<ReturnType<typeof setInterval>>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   // Poll loop status
   const fetchStatus = useCallback(async () => {
@@ -76,15 +77,28 @@ export function LoopControls({ sessionId, disabled }: Props) {
   }, [sessionId]);
 
   useEffect(() => {
-    // Defer first fetch so it doesn't compete with conversation loading
     const initTimer = setTimeout(fetchStatus, 2000);
-    // Poll every 10s while visible
     pollRef.current = setInterval(fetchStatus, 10_000);
     return () => {
       clearTimeout(initTimer);
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [fetchStatus]);
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   const handleStart = useCallback(async () => {
     if (!sessionId) return;
@@ -93,12 +107,12 @@ export function LoopControls({ sessionId, disabled }: Props) {
       await api.startLoop({
         sessionId,
         messages,
-        intervalMs: Math.max(1, intervalMin) * 60_000,
+        intervalMs: Math.max(0, intervalMin) * 60_000,
         maxIterations: maxIter,
         stopOnError: true,
       });
       await fetchStatus();
-      setExpanded(false);
+      setOpen(false);
     } catch (err) {
       console.error("Failed to start loop:", err);
     } finally {
@@ -123,137 +137,158 @@ export function LoopControls({ sessionId, disabled }: Props) {
 
   const isActive = loop?.status === "active";
 
+  // Position popover above the button
+  const getPopoverPos = () => {
+    if (!btnRef.current) return { bottom: 40, left: 0 };
+    const rect = btnRef.current.getBoundingClientRect();
+    return {
+      bottom: window.innerHeight - rect.top + 8,
+      left: Math.max(8, rect.left - 120),
+    };
+  };
+
   return (
-    <div className="loop-controls">
-      <div className="loop-controls-bar">
-        {/* Left: status */}
-        <div className="loop-controls-status">
-          <span className={`loop-indicator ${isActive ? "active" : ""}`} />
-          {isActive ? (
-            <span className="loop-status-text">
-              Loop {loop.iterationCount}/{loop.maxIterations || "∞"}
-              {loop.lastSentAt && ` · ${relativeTime(loop.lastSentAt)}`}
+    <>
+      <button
+        ref={btnRef}
+        className={`chat-action-icon-btn loop-icon-btn ${isActive ? "active" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+        title={isActive
+          ? `Loop active: ${loop.iterationCount}/${loop.maxIterations || "∞"}`
+          : "Autopilot"
+        }
+        disabled={disabled}
+      >
+        <span className={`loop-dot ${isActive ? "active" : ""}`} />
+      </button>
+
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          className="loop-popover"
+          style={getPopoverPos()}
+        >
+          {/* Status */}
+          <div className="loop-popover-header">
+            <span className="loop-popover-title">
+              {isActive ? "Autopilot Running" : "Autopilot"}
             </span>
-          ) : loop?.status === "completed" ? (
-            <span className="loop-status-text done">
-              ✅ Loop done ({loop.iterationCount} iter)
-            </span>
-          ) : loop?.status === "error" ? (
-            <span className="loop-status-text error">
-              ⚠️ {loop.errorMessage || "Error"}
-            </span>
-          ) : (
-            <span className="loop-status-text idle">Autopilot</span>
-          )}
-        </div>
-
-        {/* Right: actions */}
-        <div className="loop-controls-actions">
-          <button
-            className="loop-config-btn"
-            onClick={() => setExpanded((v) => !v)}
-            title="Configure loop"
-            disabled={disabled}
-          >
-            ⚙
-          </button>
-          {isActive ? (
-            <button
-              className="loop-stop-btn"
-              onClick={handleStop}
-              disabled={loading || disabled}
-              title="Stop loop"
-            >
-              ■ Stop
-            </button>
-          ) : (
-            <button
-              className="loop-start-btn"
-              onClick={handleStart}
-              disabled={loading || disabled}
-              title="Start autopilot loop"
-            >
-              {loading ? "…" : "▶ Start"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Expanded config */}
-      {expanded && (
-        <div className="loop-config-panel">
-          <div className="loop-config-row">
-            <label className="loop-config-label">Interval (min)</label>
-            <input
-              className="loop-config-input"
-              type="number"
-              min={0}
-              max={120}
-              value={intervalMin}
-              onChange={(e) => setIntervalMin(Math.max(0, Number(e.target.value)))}
-              title="0 = send immediately when agent finishes"
-            />
-          </div>
-
-          <div className="loop-config-row">
-            <label className="loop-config-label">Max iterations</label>
-            <input
-              className="loop-config-input"
-              type="number"
-              min={0}
-              max={500}
-              value={maxIter}
-              onChange={(e) => setMaxIter(Number(e.target.value))}
-              placeholder="0 = unlimited"
-            />
-          </div>
-
-          <div className="loop-config-row" style={{ flexDirection: "column", alignItems: "stretch" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <label className="loop-config-label">
-                Messages ({messages.length})
-              </label>
-              <button
-                className="loop-config-btn"
-                style={{ fontSize: 10 }}
-                onClick={() => {
-                  if (editingMessages) {
-                    // Save
-                    const parsed = messagesText
-                      .split("\n---\n")
-                      .map((s) => s.trim())
-                      .filter((s) => s.length > 0);
-                    if (parsed.length > 0) setMessages(parsed);
-                    setEditingMessages(false);
-                  } else {
-                    setMessagesText(messages.join("\n---\n"));
-                    setEditingMessages(true);
-                  }
-                }}
-              >
-                {editingMessages ? "Save" : "Edit"}
-              </button>
-            </div>
-            {editingMessages ? (
-              <textarea
-                className="loop-config-textarea"
-                value={messagesText}
-                onChange={(e) => setMessagesText(e.target.value)}
-                rows={4}
-                placeholder="Separate messages with ---"
-              />
-            ) : (
-              <div className="loop-messages-preview">
-                {messages.map((msg, i) => (
-                  <div key={i} className="loop-message-chip">
-                    {i + 1}. {msg.slice(0, 50)}{msg.length > 50 ? "…" : ""}
-                  </div>
-                ))}
-              </div>
+            {isActive && (
+              <span className="loop-popover-meta">
+                {loop.iterationCount}/{loop.maxIterations || "∞"}
+                {loop.lastSentAt && ` · ${relativeTime(loop.lastSentAt)}`}
+              </span>
+            )}
+            {loop?.status === "completed" && (
+              <span className="loop-popover-meta done">
+                ✅ Done ({loop.iterationCount} iter)
+              </span>
+            )}
+            {loop?.status === "error" && (
+              <span className="loop-popover-meta error">
+                ⚠️ {loop.errorMessage || "Error"}
+              </span>
             )}
           </div>
-        </div>
+
+          {/* Config */}
+          {!isActive && (
+            <div className="loop-popover-config">
+              <div className="loop-config-row">
+                <label className="loop-config-label">Interval (min)</label>
+                <input
+                  className="loop-config-input"
+                  type="number"
+                  min={0}
+                  max={120}
+                  value={intervalMin}
+                  onChange={(e) => setIntervalMin(Math.max(0, Number(e.target.value)))}
+                  title="0 = send immediately when agent finishes"
+                />
+              </div>
+
+              <div className="loop-config-row">
+                <label className="loop-config-label">Max iterations</label>
+                <input
+                  className="loop-config-input"
+                  type="number"
+                  min={0}
+                  max={500}
+                  value={maxIter}
+                  onChange={(e) => setMaxIter(Number(e.target.value))}
+                  placeholder="0 = unlimited"
+                />
+              </div>
+
+              <div className="loop-config-row" style={{ flexDirection: "column", alignItems: "stretch" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <label className="loop-config-label">
+                    Messages ({messages.length})
+                  </label>
+                  <button
+                    className="loop-config-btn"
+                    style={{ fontSize: 10 }}
+                    onClick={() => {
+                      if (editingMessages) {
+                        const parsed = messagesText
+                          .split("\n---\n")
+                          .map((s) => s.trim())
+                          .filter((s) => s.length > 0);
+                        if (parsed.length > 0) setMessages(parsed);
+                        setEditingMessages(false);
+                      } else {
+                        setMessagesText(messages.join("\n---\n"));
+                        setEditingMessages(true);
+                      }
+                    }}
+                  >
+                    {editingMessages ? "Save" : "Edit"}
+                  </button>
+                </div>
+                {editingMessages ? (
+                  <textarea
+                    className="loop-config-textarea"
+                    value={messagesText}
+                    onChange={(e) => setMessagesText(e.target.value)}
+                    rows={4}
+                    placeholder="Separate messages with ---"
+                  />
+                ) : (
+                  <div className="loop-messages-preview">
+                    {messages.map((msg, i) => (
+                      <div key={i} className="loop-message-chip">
+                        {i + 1}. {msg.slice(0, 50)}{msg.length > 50 ? "…" : ""}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="loop-popover-actions">
+            {isActive ? (
+              <button
+                className="loop-stop-btn"
+                onClick={handleStop}
+                disabled={loading || disabled}
+              >
+                ■ Stop
+              </button>
+            ) : (
+              <button
+                className="loop-start-btn"
+                onClick={handleStart}
+                disabled={loading || disabled}
+              >
+                {loading ? "…" : "▶ Start"}
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }

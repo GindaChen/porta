@@ -285,6 +285,11 @@ function ChatView() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {!connected && !loading && (
+        <div className="offline-banner">
+          <span>⚠ Connection lost — retrying…</span>
+        </div>
+      )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <Sidebar
         conversations={conversations}

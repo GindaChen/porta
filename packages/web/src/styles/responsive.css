@@ -150,19 +150,19 @@
   .scroll-to-bottom-btn {
     display: flex;
     position: sticky;
-    bottom: 8px;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-    max-width: 36px;
-    max-height: 36px;
-    margin: -36px auto 0;
+    bottom: 4px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+    margin: -40px 12px 0 auto;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: rgba(30, 33, 40, 0.95);
     color: var(--text-secondary);
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1;
     align-items: center;
     justify-content: center;
@@ -180,9 +180,9 @@
   }
 
   .model-selector-btn {
-    width: auto;
+    width: var(--model-selector-width, 140px);
     min-width: 0;
-    max-width: 140px;
+    max-width: var(--model-selector-width, 140px);
     padding: 5px 8px 5px 10px;
     font-size: 11px;
   }

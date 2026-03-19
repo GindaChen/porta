@@ -1,4 +1,5 @@
 import { IconMenu, IconFolder } from "./Icons";
+import { useAppearance } from "../hooks/useAppearance";
 
 interface Props {
   title: string;
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export function ChatHeader({ title, projectName, onMenuToggle }: Props) {
+  const { settings, update } = useAppearance();
+
   return (
     <div className="main-header">
       {onMenuToggle && (
@@ -29,6 +32,14 @@ export function ChatHeader({ title, projectName, onMenuToggle }: Props) {
         {title}
       </span>
       <div className="main-header-actions">
+        <button
+          className="header-refresh-btn"
+          onClick={() => update("mutePush", !settings.mutePush)}
+          title={settings.mutePush ? "Unmute notifications" : "Mute notifications"}
+          style={{ opacity: settings.mutePush ? 0.4 : 1 }}
+        >
+          {settings.mutePush ? "🔕" : "🔔"}
+        </button>
         <button
           className="header-refresh-btn"
           onClick={() => window.location.reload()}

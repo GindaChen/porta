@@ -16,6 +16,7 @@ import {
   getSubscriptionCount,
   getPollIntervalMs,
   setPollIntervalMs,
+  sendPushToAll,
 } from "../push.js";
 
 export function registerPushRoutes(app: Hono): void {
@@ -61,5 +62,14 @@ export function registerPushRoutes(app: Hono): void {
     }
     await setPollIntervalMs(ms);
     return c.json({ pollIntervalMs: getPollIntervalMs() });
+  });
+
+  // Send a test push notification
+  app.post("/api/push/test", async (c) => {
+    if (getSubscriptionCount() === 0) {
+      return c.json({ error: "No subscriptions" }, 400);
+    }
+    await sendPushToAll("🔔 Test from Porta", "Push notifications are working!");
+    return c.json({ ok: true });
   });
 }

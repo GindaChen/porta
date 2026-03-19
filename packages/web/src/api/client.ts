@@ -227,6 +227,9 @@ export const api = {
       body: JSON.stringify({ pollIntervalMs: ms }),
     }),
 
+  testPush: () =>
+    request<{ ok: boolean }>("/api/push/test", { method: "POST" }),
+
   // ── Autopilot Loop ──
 
   startLoop: (config: {

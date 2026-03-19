@@ -270,8 +270,8 @@ export function SettingsPage() {
         </div>
 
         {/* ── Appearance ── */}
-        <section className="settings-section">
-          <h3 className="settings-section-title">Appearance</h3>
+        <details className="settings-section settings-collapsible" open>
+          <summary className="settings-section-title">Appearance</summary>
           <p className="settings-section-desc">
             Customize the look and feel. Changes apply instantly.
           </p>
@@ -406,6 +406,24 @@ export function SettingsPage() {
                       unit=""
                       onChange={(v) => updateAppearance("swiperGridRows", v)}
                     />
+                    <div className="appearance-toggle-row">
+                      <span className="appearance-toggle-label">Swipe gestures</span>
+                      <button
+                        className={`appearance-toggle ${appearance.swiperSwipeGestures ? "on" : ""}`}
+                        onClick={() => updateAppearance("swiperSwipeGestures", !appearance.swiperSwipeGestures)}
+                      >
+                        <span className="appearance-toggle-thumb" />
+                      </button>
+                    </div>
+                    <div className="appearance-toggle-row">
+                      <span className="appearance-toggle-label">Show ‹ › buttons</span>
+                      <button
+                        className={`appearance-toggle ${appearance.swiperShowPagination ? "on" : ""}`}
+                        onClick={() => updateAppearance("swiperShowPagination", !appearance.swiperShowPagination)}
+                      >
+                        <span className="appearance-toggle-thumb" />
+                      </button>
+                    </div>
                   </>
                 )}
               </>
@@ -477,10 +495,19 @@ export function SettingsPage() {
             <SliderControl
               label="Model selector width"
               value={appearance.modelSelectorWidth}
-              min={80}
+              min={50}
               max={220}
               onChange={(v) => updateAppearance("modelSelectorWidth", v)}
             />
+            <div className="appearance-toggle-row">
+              <span className="appearance-toggle-label">Microphone button</span>
+              <button
+                className={`appearance-toggle ${appearance.showMicButton ? "on" : ""}`}
+                onClick={() => updateAppearance("showMicButton", !appearance.showMicButton)}
+              >
+                <span className="appearance-toggle-thumb" />
+              </button>
+            </div>
           </div>
 
           {/* Text controls */}
@@ -530,6 +557,20 @@ export function SettingsPage() {
             </div>
           </div>
 
+          {/* Debug / Developer */}
+          <div className="appearance-group">
+            <label className="settings-label" style={{ marginBottom: 4 }}>Developer</label>
+            <div className="appearance-toggle-row">
+              <span className="appearance-toggle-label">Show raw JSON on steps</span>
+              <button
+                className={`appearance-toggle ${appearance.showRawJson ? "on" : ""}`}
+                onClick={() => updateAppearance("showRawJson", !appearance.showRawJson)}
+              >
+                <span className="appearance-toggle-thumb" />
+              </button>
+            </div>
+          </div>
+
           {/* Reset */}
           <button
             className="settings-save-btn"
@@ -538,13 +579,13 @@ export function SettingsPage() {
           >
             Reset to Defaults
           </button>
-        </section>
+        </details>
 
         <hr className="settings-divider" />
 
         {/* ── Notifications ── */}
-        <section className="settings-section">
-          <h3 className="settings-section-title">Notifications</h3>
+        <details className="settings-section settings-collapsible" open>
+          <summary className="settings-section-title">Notifications</summary>
 
           <div className="appearance-toggle-row" style={{ marginBottom: 12 }}>
             <span className="appearance-toggle-label">In-app toasts</span>
@@ -615,14 +656,30 @@ export function SettingsPage() {
                 </p>
               )}
 
-              <button
-                className="settings-save-btn"
-                onClick={handleUnsubscribePush}
-                disabled={pushLoading}
-                style={{ marginTop: 8, background: "var(--bg-hover)", color: "var(--text-secondary)" }}
-              >
-                Disable Push
-              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button
+                  className="settings-save-btn"
+                  onClick={async () => {
+                    try {
+                      await api.testPush();
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  disabled={pushLoading}
+                  style={{ flex: 1 }}
+                >
+                  Send Test Push
+                </button>
+                <button
+                  className="settings-save-btn"
+                  onClick={handleUnsubscribePush}
+                  disabled={pushLoading}
+                  style={{ flex: 1, background: "var(--bg-hover)", color: "var(--text-secondary)" }}
+                >
+                  Disable Push
+                </button>
+              </div>
             </>
           ) : (
             <button
@@ -635,13 +692,13 @@ export function SettingsPage() {
           )}
 
           {pushError && <p className="settings-error">{pushError}</p>}
-        </section>
+        </details>
 
         <hr className="settings-divider" />
 
         {/* ── Speech Recognition ── */}
-        <section className="settings-section">
-          <h3 className="settings-section-title">Speech Recognition</h3>
+        <details className="settings-section settings-collapsible" open>
+          <summary className="settings-section-title">Speech Recognition</summary>
           <p className="settings-section-desc">
             Configure a speech-to-text provider so the mic button works on all
             browsers, including iOS Safari.
@@ -705,7 +762,7 @@ export function SettingsPage() {
           </button>
 
           {errorMsg && <p className="settings-error">{errorMsg}</p>}
-        </section>
+        </details>
       </div>
     </div>
   );

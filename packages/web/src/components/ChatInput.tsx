@@ -5,6 +5,8 @@ import type { MediaAttachment } from "../types";
 import { prepareAttachments } from "../utils/imageAttachments";
 import { DEFAULT_MODEL } from "../constants";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import { useAppearance } from "../hooks/useAppearance";
+import { haptic } from "../utils/haptics";
 import { LoopControls } from "./LoopControls";
 const ALLOWED_TYPES = [
   "image/png",
@@ -37,70 +39,6 @@ interface AttachmentPreview {
   dataUrl: string;
 }
 
-const PLANNER_OPTIONS: { value: PlannerType; label: string; desc: string }[] = [
-  {
-    value: "conversational",
-    label: "Fast",
-    desc: "Direct, single-step responses",
-  },
-  { value: "planning", label: "Plan", desc: "Multi-step structured approach" },
-];
-
-function PlannerTypeSelector({
-  plannerType,
-  onSelect,
-}: {
-  plannerType: PlannerType;
-  onSelect: (v: PlannerType) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const activeLabel =
-    PLANNER_OPTIONS.find((o) => o.value === plannerType)?.label ?? "Fast";
-
-  return (
-    <div className="model-selector" ref={ref}>
-      <button
-        className="model-selector-btn"
-        onClick={() => setOpen((v) => !v)}
-        title="Select planner mode"
-      >
-        <span className="model-selector-label">{activeLabel}</span>
-        <span className="model-selector-caret">▾</span>
-      </button>
-      {open && (
-        <div className="model-selector-dropdown">
-          {PLANNER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              className={`model-option ${plannerType === opt.value ? "active" : ""}`}
-              onClick={() => {
-                onSelect(opt.value);
-                setOpen(false);
-              }}
-            >
-              <span className="model-option-label">{opt.label}</span>
-              <span className="model-option-meta">{opt.desc}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function ChatInput({
   onSend,
   onStop,
@@ -119,6 +57,7 @@ export function ChatInput({
   const fileErrorTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { settings, update: updateAppearance } = useAppearance();
 
   // Speech recognition
   const handleTranscript = useCallback(
@@ -190,6 +129,7 @@ export function ChatInput({
         media = prepared.map(({ bytes: _bytes, ...attachment }) => attachment);
       }
 
+      haptic("light");
       onSend(trimmed || " ", model, media, plannerType);
       onDraftChange("");
       attachments.forEach((attachment) => {
@@ -319,8 +259,6 @@ export function ChatInput({
       <div
         className="chat-input-wrap"
         onClick={(e) => {
-          // If the user clicks the wrapping container but not a button or input explicitly, focus the textarea.
-          // This prevents "dead zones" where the browser doesn't know what to focus, leading to cursor bugs.
           const target = e.target as HTMLElement;
           if (
             target.tagName !== "BUTTON" &&
@@ -333,6 +271,7 @@ export function ChatInput({
           }
         }}
       >
+        {/* Textarea + inline send button */}
         <div className="chat-input-top">
           <textarea
             ref={textareaRef}
@@ -344,15 +283,24 @@ export function ChatInput({
             onPaste={handlePaste}
             rows={1}
             disabled={inputDisabled}
+            style={{ minHeight: `var(--chat-textarea-height, 36px)` }}
           />
+          <button
+            className="chat-send-btn chat-send-inline"
+            onClick={handleSubmit}
+            disabled={
+              (!draft.trim() && attachments.length === 0) || inputDisabled
+            }
+            title={isPreparingAttachments ? "Processing images..." : "Send (Enter)"}
+          >
+            ↑
+          </button>
           {interimText && (
             <div className="speech-interim-text">{interimText}</div>
           )}
         </div>
 
-        {/* Loop controls row */}
-        <LoopControls sessionId={sessionId ?? null} disabled={disabled} />
-
+        {/* Single compact bottom bar */}
         <div className="chat-input-bottom">
           <div className="chat-input-bottom-left">
             <button
@@ -363,7 +311,15 @@ export function ChatInput({
             >
               <IconPaperclip size={18} />
             </button>
-            {micSupported && (
+            <button
+              className="chat-action-icon-btn"
+              onClick={() => updateAppearance("swiperVisible", !settings.swiperVisible)}
+              title={settings.swiperVisible ? "Hide swiper" : "Show swiper"}
+              style={{ fontSize: 14, opacity: settings.swiperVisible ? 1 : 0.4 }}
+            >
+              {settings.swiperVisible ? "▤" : "▥"}
+            </button>
+            {micSupported && settings.showMicButton && (
               <button
                 className={`chat-action-icon-btn chat-mic-btn ${isListening ? "recording" : ""} ${isTranscribing ? "transcribing" : ""}`}
                 onClick={toggleMic}
@@ -373,6 +329,7 @@ export function ChatInput({
                 <IconMic size={18} />
               </button>
             )}
+            <LoopControls sessionId={sessionId ?? null} disabled={disabled} />
             <input
               ref={fileInputRef}
               type="file"
@@ -394,10 +351,11 @@ export function ChatInput({
           </div>
 
           <div className="chat-input-bottom-right">
-            <ModelSelector selectedModel={model} onSelect={setModel} />
-            <PlannerTypeSelector
+            <ModelSelector
+              selectedModel={model}
+              onSelectModel={setModel}
               plannerType={plannerType}
-              onSelect={setPlannerType}
+              onSelectPlanner={setPlannerType}
             />
             {isRunning && (
               <button
@@ -408,16 +366,6 @@ export function ChatInput({
                 ■
               </button>
             )}
-            <button
-              className="chat-send-btn"
-              onClick={handleSubmit}
-              disabled={
-                (!draft.trim() && attachments.length === 0) || inputDisabled
-              }
-              title={isPreparingAttachments ? "Processing images..." : "Send (Enter)"}
-            >
-              ↑
-            </button>
           </div>
         </div>
       </div>

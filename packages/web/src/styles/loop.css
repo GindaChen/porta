@@ -1,76 +1,181 @@
-/* ── Autopilot Loop Controls ── */
+/* ── Autopilot Loop Button + Popover ── */
 
-.loop-controls {
-  border-top: 1px solid var(--border-subtle);
-  padding: 6px 0 4px;
+/* Compact icon button in the action bar */
+.loop-icon-btn {
+  position: relative;
 }
 
-.loop-controls-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 28px;
+.loop-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  opacity: 0.4;
+  transition: all 200ms ease;
 }
 
-/* Left: status indicator */
-.loop-controls-status {
+.loop-dot.active {
+  background: rgb(var(--c-accent));
+  opacity: 1;
+  animation: loop-pulse 2s ease-in-out infinite;
+}
+
+.loop-icon-btn.active {
+  color: rgb(var(--c-accent));
+}
+
+/* ── Floating popover ── */
+
+.loop-popover {
+  position: fixed;
+  z-index: 9999;
+  width: 280px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 10px;
+  animation: loop-popover-in 150ms ease;
+}
+
+.loop-popover-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.loop-popover-title {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.loop-popover-meta {
   font-size: 11px;
   font-family: var(--font-sans);
   color: var(--text-secondary);
 }
 
-.loop-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-tertiary);
+.loop-popover-meta.done {
+  color: rgb(var(--c-success));
+}
+
+.loop-popover-meta.error {
+  color: rgb(var(--c-error));
+}
+
+/* Config panel inside popover */
+.loop-popover-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.loop-config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loop-config-label {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  min-width: 90px;
   flex-shrink: 0;
-  transition: background 200ms ease;
 }
 
-.loop-indicator.active {
-  background: rgb(var(--c-success));
-  animation: loop-pulse 2s ease-in-out infinite;
+.loop-config-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  padding: 4px 8px;
 }
 
-.loop-status-text {
+.loop-config-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.loop-config-btn {
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 120ms ease;
+}
+
+.loop-config-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.loop-config-textarea {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 6px 8px;
+  resize: vertical;
+  margin-top: 4px;
+}
+
+.loop-config-textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.loop-messages-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.loop-message-chip {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  padding: 2px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.loop-status-text.idle {
-  opacity: 0.5;
-}
-
-.loop-status-text.done {
-  color: rgb(var(--c-success));
-}
-
-.loop-status-text.error {
-  color: rgb(var(--c-error));
-}
-
-/* Right: action buttons */
-.loop-controls-actions {
+/* Action buttons */
+.loop-popover-actions {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .loop-start-btn,
 .loop-stop-btn {
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 12px;
   font-family: var(--font-sans);
   font-weight: 500;
-  padding: 4px 10px;
+  padding: 6px 14px;
   cursor: pointer;
   transition:
     background 120ms ease,
@@ -101,117 +206,21 @@
   cursor: default;
 }
 
-.loop-config-btn {
-  border: none;
-  background: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  transition: background 120ms ease;
-}
-
-.loop-config-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-}
-
-/* ── Expandable config panel ── */
-
-.loop-config-panel {
-  margin-top: 6px;
-  padding: 8px 0 2px;
-  border-top: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  animation: loop-panel-slide 150ms ease;
-}
-
-.loop-config-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.loop-config-label {
-  font-size: 11px;
-  font-family: var(--font-sans);
-  color: var(--text-secondary);
-  min-width: 90px;
-  flex-shrink: 0;
-}
-
-.loop-config-select,
-.loop-config-input {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 11px;
-  font-family: var(--font-sans);
-  padding: 4px 8px;
-}
-
-.loop-config-select:focus,
-.loop-config-input:focus {
-  outline: none;
-  border-color: var(--border-focus);
-}
-
-.loop-config-textarea {
-  width: 100%;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  padding: 6px 8px;
-  resize: vertical;
-  margin-top: 4px;
-}
-
-.loop-config-textarea:focus {
-  outline: none;
-  border-color: var(--border-focus);
-}
-
-/* Message preview */
-.loop-messages-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 4px;
-}
-
-.loop-message-chip {
-  font-size: 10px;
-  color: var(--text-tertiary);
-  padding: 2px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ── Animations ── */
 
 @keyframes loop-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgb(var(--c-success) / 0.4);
+    box-shadow: 0 0 0 0 rgb(var(--c-accent) / 0.4);
   }
   50% {
-    box-shadow: 0 0 0 4px rgb(var(--c-success) / 0);
+    box-shadow: 0 0 0 4px rgb(var(--c-accent) / 0);
   }
 }
 
-@keyframes loop-panel-slide {
+@keyframes loop-popover-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
