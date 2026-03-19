@@ -249,10 +249,14 @@ export function ChatSwiper({
   const { settings } = useAppearance();
   const { menu, startPress, cancelPress, showMenu, dismiss } = useLongPressMenu();
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(loadPins);
+  const [gridPage, setGridPage] = useState(0);
 
-  // Auto-scroll to keep the active chip visible
+  const isGrid = settings.swiperLayout === "grid";
+  const gridPerPage = settings.swiperGridColumns * settings.swiperGridRows;
+
+  // Auto-scroll to keep the active chip visible (scroll mode only)
   useEffect(() => {
-    if (!scrollRef.current || !activeId) return;
+    if (isGrid || !scrollRef.current || !activeId) return;
     const activeChip = scrollRef.current.querySelector(
       `[data-chip-id="${activeId}"]`,
     ) as HTMLElement | null;
@@ -263,7 +267,7 @@ export function ChatSwiper({
         inline: "nearest",
       });
     }
-  }, [activeId]);
+  }, [activeId, isGrid]);
 
   // Pin/unpin handlers
   const handlePin = useCallback((id: string) => {
@@ -296,12 +300,30 @@ export function ChatSwiper({
     return aPinned - bPinned;
   });
 
-  const visible = sorted.slice(0, settings.swiperMaxVisible);
+  // Pagination for grid mode, max-visible for scroll mode
+  let visible: ConversationEntry[];
+  let totalPages = 1;
+  if (isGrid) {
+    totalPages = Math.ceil(sorted.length / gridPerPage);
+    const safePage = Math.min(gridPage, totalPages - 1);
+    visible = sorted.slice(safePage * gridPerPage, (safePage + 1) * gridPerPage);
+  } else {
+    visible = sorted.slice(0, settings.swiperMaxVisible);
+  }
+
   const showProjectColors = settings.swiperAllProjects;
+
+  const trackClass = isGrid
+    ? "chat-swiper-track grid-layout"
+    : "chat-swiper-track";
+
+  const trackStyle: React.CSSProperties = isGrid
+    ? { ["--swiper-grid-cols" as string]: settings.swiperGridColumns }
+    : {};
 
   return (
     <div className="chat-swiper">
-      <div className="chat-swiper-track" ref={scrollRef}>
+      <div className={trackClass} ref={scrollRef} style={trackStyle}>
         {visible.map((conv) => {
           const isActive = conv.id === activeId;
           const isRunning =
@@ -382,6 +404,33 @@ export function ChatSwiper({
           );
         })}
       </div>
+
+      {/* Grid pagination */}
+      {isGrid && totalPages > 1 && (
+        <div className="chat-swiper-grid-nav">
+          <button
+            disabled={gridPage <= 0}
+            onClick={() => setGridPage((p) => Math.max(0, p - 1))}
+          >
+            ‹ Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              className={i === Math.min(gridPage, totalPages - 1) ? "active" : ""}
+              onClick={() => setGridPage(i)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            disabled={gridPage >= totalPages - 1}
+            onClick={() => setGridPage((p) => Math.min(totalPages - 1, p + 1))}
+          >
+            Next ›
+          </button>
+        </div>
+      )}
 
       {/* iOS-style context menu on long-press */}
       {menu && (

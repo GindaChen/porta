@@ -368,6 +368,46 @@ export function SettingsPage() {
                   unit="%"
                   onChange={(v) => updateAppearance("swiperActiveBorderOpacity", v / 100)}
                 />
+                <SliderControl
+                  label="Dot size"
+                  value={appearance.swiperDotSize}
+                  min={4}
+                  max={16}
+                  onChange={(v) => updateAppearance("swiperDotSize", v)}
+                />
+                <div className="appearance-control">
+                  <label className="settings-label">Layout</label>
+                  <select
+                    className="settings-select"
+                    value={appearance.swiperLayout}
+                    onChange={(e) =>
+                      updateAppearance("swiperLayout", e.target.value as "scroll" | "grid")
+                    }
+                  >
+                    <option value="scroll">Scroll</option>
+                    <option value="grid">Grid</option>
+                  </select>
+                </div>
+                {appearance.swiperLayout === "grid" && (
+                  <>
+                    <SliderControl
+                      label="Grid columns"
+                      value={appearance.swiperGridColumns}
+                      min={2}
+                      max={6}
+                      unit=""
+                      onChange={(v) => updateAppearance("swiperGridColumns", v)}
+                    />
+                    <SliderControl
+                      label="Grid rows"
+                      value={appearance.swiperGridRows}
+                      min={1}
+                      max={4}
+                      unit=""
+                      onChange={(v) => updateAppearance("swiperGridRows", v)}
+                    />
+                  </>
+                )}
               </>
             )}
           </div>
@@ -502,9 +542,21 @@ export function SettingsPage() {
 
         <hr className="settings-divider" />
 
-        {/* ── Push Notifications ── */}
+        {/* ── Notifications ── */}
         <section className="settings-section">
-          <h3 className="settings-section-title">Push Notifications</h3>
+          <h3 className="settings-section-title">Notifications</h3>
+
+          <div className="appearance-toggle-row" style={{ marginBottom: 12 }}>
+            <span className="appearance-toggle-label">In-app toasts</span>
+            <button
+              className={`appearance-toggle ${appearance.showToasts ? "on" : ""}`}
+              onClick={() => updateAppearance("showToasts", !appearance.showToasts)}
+            >
+              <span className="appearance-toggle-thumb" />
+            </button>
+          </div>
+
+          <h4 className="settings-label" style={{ marginBottom: 4 }}>Push Notifications</h4>
           <p className="settings-section-desc">
             Get notified on your lock screen when a task finishes — even when
             the app is closed.

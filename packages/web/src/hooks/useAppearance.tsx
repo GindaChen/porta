@@ -36,6 +36,14 @@ export interface AppearanceSettings {
   swiperActiveGlow: number;
   /** Active chip border opacity (0.2 – 1.0) */
   swiperActiveBorderOpacity: number;
+  /** Status dot size in px */
+  swiperDotSize: number;
+  /** Layout mode: horizontal scroll or grid */
+  swiperLayout: "scroll" | "grid";
+  /** Grid columns (only used in grid mode) */
+  swiperGridColumns: number;
+  /** Grid rows per page (only used in grid mode) */
+  swiperGridRows: number;
   /** Per-project color overrides: project name → hex color */
   projectColorOverrides: Record<string, string>;
   /** Model selector button width in px */
@@ -48,6 +56,8 @@ export interface AppearanceSettings {
   borderRadius: number;
   /** UI density */
   density: "compact" | "normal" | "spacious";
+  /** Show in-app toast notifications */
+  showToasts: boolean;
 }
 
 // ── Defaults ──
@@ -62,12 +72,17 @@ export const DEFAULTS: AppearanceSettings = {
   swiperAllProjects: false,
   swiperActiveGlow: 8,
   swiperActiveBorderOpacity: 0.6,
+  swiperDotSize: 10,
+  swiperLayout: "scroll",
+  swiperGridColumns: 4,
+  swiperGridRows: 2,
   projectColorOverrides: {},
   modelSelectorWidth: 180,
   messageFontSize: 13.5,
   codeFontSize: 12,
   borderRadius: 10,
   density: "normal",
+  showToasts: true,
 };
 
 // ── Theme presets ──
@@ -193,6 +208,8 @@ function applyToDOM(s: AppearanceSettings) {
   el.setProperty("--swiper-display", s.swiperVisible ? "block" : "none");
   el.setProperty("--swiper-active-glow", `${s.swiperActiveGlow}px`);
   el.setProperty("--swiper-active-border-opacity", `${s.swiperActiveBorderOpacity}`);
+  el.setProperty("--swiper-dot-size", `${s.swiperDotSize}px`);
+  el.setProperty("--swiper-dot-spinner-size", `${s.swiperDotSize + 2}px`);
 
   // Model selector
   el.setProperty("--model-selector-width", `${s.modelSelectorWidth}px`);
