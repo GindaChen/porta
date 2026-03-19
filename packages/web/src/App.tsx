@@ -23,7 +23,7 @@ import { useDraftText } from "./hooks/useDraftText";
 import { useChatActions } from "./hooks/useChatActions";
 import { useNotifications } from "./hooks/useNotifications";
 import { TabProvider, useTab } from "./hooks/useTab";
-import { AppearanceProvider } from "./hooks/useAppearance";
+import { AppearanceProvider, useAppearance } from "./hooks/useAppearance";
 import { usePinnedConversations } from "./hooks/usePinnedConversations";
 import { api } from "./api/client";
 import { isUnconfirmedOptimisticMessage } from "./utils/optimisticMessages";
@@ -106,7 +106,8 @@ function ChatView() {
   const { data: health } = usePolling<HealthResponse>(api.health, 30_000);
 
   // ── Notifications: alert when a task finishes ──
-  const { toasts, dismissToast } = useNotifications(conversations);
+  const { settings: { showToasts } } = useAppearance();
+  const { toasts, dismissToast } = useNotifications(conversations, showToasts);
 
   // ── Pinned conversations ──
   const { togglePin, isPinned } = usePinnedConversations();

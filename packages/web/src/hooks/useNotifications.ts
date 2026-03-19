@@ -44,7 +44,7 @@ function playChime() {
   }
 }
 
-export function useNotifications(conversations: ConversationEntry[]) {
+export function useNotifications(conversations: ConversationEntry[], showToasts = true) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Track which conversations were running on the previous poll
@@ -71,7 +71,9 @@ export function useNotifications(conversations: ConversationEntry[]) {
   // Show an in-app toast + optional browser notification
   const showNotification = useCallback(
     (title: string, body: string, convId: string) => {
-      // In-app toast (always works)
+      if (!showToasts) return;
+
+      // In-app toast
       const toast: Toast = {
         id: `${convId}-${Date.now()}`,
         title,
@@ -88,32 +90,11 @@ export function useNotifications(conversations: ConversationEntry[]) {
       // Play chime
       playChime();
 
-      // Push notification via ServiceWorker (works on iOS PWA + desktop)
-      if (browserNotifSupported && Notification.permission === "granted") {
-        navigator.serviceWorker?.ready
-          .then((reg) => {
-            reg.showNotification(title, {
-              body,
-              icon: "/favicon.ico",
-              badge: "/favicon.ico",
-              tag: `porta-done-${convId}`,
-            });
-          })
-          .catch(() => {
-            // Fallback: try direct Notification (desktop browsers)
-            try {
-              new Notification(title, {
-                body,
-                icon: "/favicon.ico",
-                tag: `porta-done-${convId}`,
-              });
-            } catch {
-              // Ignore
-            }
-          });
-      }
+      // NOTE: Push notifications are handled server-side by the proxy's
+      // background poller (push.ts). No client-side push needed here —
+      // that would cause duplicates. In-app toast + chime above are sufficient.
     },
-    [],
+    [showToasts],
   );
 
   // Auto-detect when conversations finish running
