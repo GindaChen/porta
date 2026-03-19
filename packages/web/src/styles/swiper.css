@@ -32,9 +32,10 @@
 }
 
 .chat-swiper-chip {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 0 10px;
   height: var(--swiper-chip-height, 36px);
   border: 1px solid var(--border-default);
@@ -56,7 +57,6 @@
     box-shadow var(--transition-fast),
     transform 120ms ease;
   line-height: 1.3;
-  /* Prevent text selection on long-press (iOS & Android) */
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -71,80 +71,115 @@
 /* ── Status dot ── */
 
 .chat-swiper-chip-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--text-tertiary);
-  transition: background var(--transition-fast);
+  opacity: 0.4;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
 }
 
-/* Done (idle) → green dot */
+/* Done (idle) → dim gray dot (read/finished) */
 .chat-swiper-chip.done .chat-swiper-chip-dot {
-  background: rgb(var(--c-success));
+  background: var(--text-tertiary);
+  opacity: 0.3;
 }
 
-/* Running → accent dot with pulse */
+/* Running → spinner */
 .chat-swiper-chip.running .chat-swiper-chip-dot {
-  background: var(--accent);
-  animation: swiper-pulse 1.5s ease-in-out infinite;
+  width: 8px;
+  height: 8px;
+  background: transparent;
+  border: 1.5px solid var(--text-tertiary);
+  border-top-color: var(--accent);
+  animation: swiper-spin 0.8s linear infinite;
+  opacity: 1;
 }
 
 /* Error → red dot */
 .chat-swiper-chip.error .chat-swiper-chip-dot {
   background: rgb(var(--c-error));
+  opacity: 1;
 }
 
-/* Active → highlighted chip with prominent glow */
+/* ── Active chip: keep its own color, just brighten ──
+   Background and border colors are set via inline style.
+   When active, we override nothing — just add glow + scale + brightness. */
+
 .chat-swiper-chip.active {
-  background: rgb(var(--c-accent) / 0.18);
-  border-color: rgb(var(--c-accent) / var(--swiper-active-border-opacity, 0.6));
   border-width: 1.5px;
   color: var(--text-primary);
   font-weight: 500;
+  filter: brightness(1.35);
   box-shadow:
-    0 0 var(--swiper-active-glow, 8px) rgb(var(--c-accent) / 0.25),
-    inset 0 0 12px rgb(var(--c-accent) / 0.06);
+    0 0 var(--swiper-active-glow, 8px) rgba(255, 255, 255, 0.08),
+    inset 0 0 12px rgba(255, 255, 255, 0.03);
   transform: scale(1.03);
   z-index: 1;
 }
 
 .chat-swiper-chip.active .chat-swiper-chip-dot {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgb(var(--c-accent) / 0.25);
+  opacity: 1;
 }
 
 /* Pinned chip indicator */
 .chat-swiper-chip.pinned::before {
   content: "\1F4CC";
-  font-size: 8px;
+  font-size: 7px;
   position: absolute;
-  top: 2px;
+  top: 1px;
   right: 3px;
   line-height: 1;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
-.chat-swiper-chip {
-  position: relative;
+/* ── Two-row chip content ── */
+
+.chat-swiper-chip-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
 }
 
-/* ── Label & time ── */
+.chat-swiper-chip-project {
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.7;
+}
 
 .chat-swiper-chip-label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 10px;
 }
 
 .chat-swiper-chip-time {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-tertiary);
-  opacity: 0.7;
+  opacity: 0.6;
+  flex-shrink: 0;
 }
 
-/* ── Pulse animation ── */
+/* ── Spinner animation ── */
+
+@keyframes swiper-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Pulse animation (kept for backwards compat) ── */
 
 @keyframes swiper-pulse {
   0%, 100% {
@@ -164,15 +199,22 @@
 
   .chat-swiper-chip {
     padding: 0 8px;
-    font-size: 11px;
     gap: 4px;
     width: var(--swiper-chip-width, 120px);
     min-width: var(--swiper-chip-width, 120px);
     max-width: var(--swiper-chip-width, 120px);
   }
 
-  .chat-swiper-chip-time {
+  .chat-swiper-chip-project {
+    font-size: 7px;
+  }
+
+  .chat-swiper-chip-label {
     font-size: 9px;
+  }
+
+  .chat-swiper-chip-time {
+    font-size: 8px;
   }
 }
 

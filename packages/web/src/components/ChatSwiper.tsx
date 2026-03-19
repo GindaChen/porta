@@ -310,26 +310,28 @@ export function ChatSwiper({
           const isError = conv.summary.status === "CASCADE_RUN_STATUS_ERROR";
           const isPinned = pinnedIds.has(conv.id);
 
-          let statusClass = "";
-          if (isActive) statusClass = "active";
-          else if (isRunning) statusClass = "running";
-          else if (isError) statusClass = "error";
-          else if (isIdle) statusClass = "done";
-          if (isPinned) statusClass += " pinned";
+          // Status classes are additive (active + running can coexist)
+          const classes = ["chat-swiper-chip"];
+          if (isActive) classes.push("active");
+          if (isRunning) classes.push("running");
+          else if (isError) classes.push("error");
+          else if (isIdle) classes.push("done");
+          if (isPinned) classes.push("pinned");
 
           const project = extractProjectName(conv);
           const overrideHex = settings.projectColorOverrides?.[project];
           const colors = showProjectColors ? projectColor(project, overrideHex) : null;
 
+          // Always keep project color — even when active (brightness filter handles highlight)
           const chipStyle: React.CSSProperties = colors
             ? {
-                background: isActive ? undefined : colors.bg,
-                borderColor: isActive ? undefined : colors.border,
+                background: colors.bg,
+                borderColor: colors.border,
               }
             : {};
 
           const dotStyle: React.CSSProperties =
-            colors && !isActive && !isRunning && !isError
+            colors && !isRunning && !isError
               ? { background: colors.dot }
               : {};
 
@@ -341,13 +343,11 @@ export function ChatSwiper({
             <button
               key={conv.id}
               data-chip-id={conv.id}
-              className={`chat-swiper-chip ${statusClass}`}
+              className={classes.join(" ")}
               onClick={() => {
-                // Only navigate if context menu is not open
                 if (!menu) onSelect(conv.id);
               }}
               style={chipStyle}
-              // Long-press for context menu (mobile)
               onTouchStart={(e) => {
                 const touch = e.touches[0];
                 startPress(
@@ -360,17 +360,20 @@ export function ChatSwiper({
               }}
               onTouchEnd={cancelPress}
               onTouchMove={cancelPress}
-              // Context menu on right-click (desktop)
               onContextMenu={(e) => {
                 e.preventDefault();
                 showMenu(conv.id, conv.summary.summary, project, e.clientX, e.clientY);
               }}
-              // Hover title for desktop
               title={tooltipText}
             >
               <span className="chat-swiper-chip-dot" style={dotStyle} />
-              <span className="chat-swiper-chip-label">
-                {chipLabel(conv.summary.summary)}
+              <span className="chat-swiper-chip-text">
+                {showProjectColors && (
+                  <span className="chat-swiper-chip-project">{project}</span>
+                )}
+                <span className="chat-swiper-chip-label">
+                  {chipLabel(conv.summary.summary)}
+                </span>
               </span>
               <span className="chat-swiper-chip-time">
                 {relativeTimeShort(conv.summary.lastModifiedTime)}

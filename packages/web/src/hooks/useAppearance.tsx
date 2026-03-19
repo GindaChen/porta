@@ -56,7 +56,7 @@ export const DEFAULTS: AppearanceSettings = {
   theme: "dark",
   accentColor: "108 139 239",
   swiperChipWidth: 130,
-  swiperChipHeight: 36,
+  swiperChipHeight: 42,
   swiperMaxVisible: 8,
   swiperVisible: true,
   swiperAllProjects: false,
