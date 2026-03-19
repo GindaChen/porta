@@ -56,8 +56,8 @@ export function registerPushRoutes(app: Hono): void {
   app.put("/api/push/poll-interval", async (c) => {
     const body = await c.req.json();
     const ms = Number(body.pollIntervalMs);
-    if (isNaN(ms) || ms < 3000 || ms > 60000) {
-      return c.json({ error: "pollIntervalMs must be between 3000 and 60000" }, 400);
+    if (isNaN(ms) || ms < 0 || ms > 60000) {
+      return c.json({ error: "pollIntervalMs must be between 0 and 60000" }, 400);
     }
     await setPollIntervalMs(ms);
     return c.json({ pollIntervalMs: getPollIntervalMs() });

@@ -46,7 +46,7 @@ async function loadPushData(): Promise<PushData> {
       vapid: {
         publicKey: vapidKeys.publicKey,
         privateKey: vapidKeys.privateKey,
-        subject: "mailto:porta@localhost",
+        subject: "https://jundacs-macbook-pro.tailc13876.ts.net",
       },
       subscriptions: [],
       pollIntervalMs: DEFAULT_POLL_MS,
@@ -105,7 +105,7 @@ export function getPollIntervalMs(): number {
 
 export async function setPollIntervalMs(ms: number): Promise<void> {
   if (!pushData) return;
-  pushData.pollIntervalMs = Math.max(3000, Math.min(60000, ms));
+  pushData.pollIntervalMs = Math.max(0, Math.min(60000, ms));
   await savePushData(pushData);
   // Restart poller with new interval
   startPoller();
@@ -122,6 +122,10 @@ function startPoller(): void {
   if (!pushData || pushData.subscriptions.length === 0) return;
 
   const interval = pushData.pollIntervalMs;
+  if (interval === 0) {
+    console.log(`[push] poller disabled (interval=0)`);
+    return;
+  }
   console.log(`[push] poller started (every ${interval / 1000}s)`);
   pollerTimer = setInterval(() => void pollConversations(), interval);
 }

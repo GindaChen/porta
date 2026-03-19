@@ -136,10 +136,12 @@ export function SettingsPage() {
 
     // Check if already subscribed
     if (pushSupported) {
-      navigator.serviceWorker?.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
-          setPushSubscribed(!!sub);
-        });
+      navigator.serviceWorker?.getRegistration("/").then((reg) => {
+        if (reg) {
+          reg.pushManager.getSubscription().then((sub) => {
+            setPushSubscribed(!!sub);
+          });
+        }
       });
     }
   }, []);
@@ -178,17 +180,35 @@ export function SettingsPage() {
         }
       }
 
-      // 2. Get VAPID public key from proxy
+      // 2. Ensure a service worker is registered (sw-push.js handles push events)
+      let reg: ServiceWorkerRegistration;
+      const existingReg = await navigator.serviceWorker.getRegistration("/");
+      if (existingReg) {
+        reg = existingReg;
+      } else {
+        reg = await navigator.serviceWorker.register("/sw-push.js", { scope: "/" });
+        // Wait for it to be active
+        await new Promise<void>((resolve, reject) => {
+          const sw = reg.installing || reg.waiting || reg.active;
+          if (reg.active) { resolve(); return; }
+          if (!sw) { reject(new Error("Service worker failed to install")); return; }
+          const timeout = setTimeout(() => reject(new Error("Service worker activation timed out")), 8000);
+          sw.addEventListener("statechange", () => {
+            if (sw.state === "activated") { clearTimeout(timeout); resolve(); }
+          });
+        });
+      }
+
+      // 3. Get VAPID public key from proxy
       const { publicKey } = await api.getVapidKey();
 
-      // 3. Subscribe via PushManager
-      const reg = await navigator.serviceWorker.ready;
+      // 4. Subscribe via PushManager
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
-      // 4. Send subscription to proxy
+      // 5. Send subscription to proxy
       await api.subscribePush(sub.toJSON());
 
       setPushSubscribed(true);
@@ -202,8 +222,8 @@ export function SettingsPage() {
   const handleUnsubscribePush = useCallback(async () => {
     setPushLoading(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
+      const reg = await navigator.serviceWorker.getRegistration("/");
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
       if (sub) {
         await api.unsubscribePush(sub.endpoint);
         await sub.unsubscribe();
@@ -216,14 +236,18 @@ export function SettingsPage() {
     }
   }, []);
 
-  const handlePollIntervalChange = useCallback(async (sec: number) => {
+  const [pollDraft, setPollDraft] = useState(pollIntervalSec);
+  const pollDirty = pollDraft !== pollIntervalSec;
+
+  const handleSavePollInterval = useCallback(async () => {
+    const sec = pollDraft;
     setPollIntervalSec(sec);
     try {
       await api.setPollInterval(sec * 1000);
     } catch {
       // Ignore
     }
-  }, []);
+  }, [pollDraft]);
 
   if (!loaded) {
     return (
@@ -513,17 +537,31 @@ export function SettingsPage() {
                 <input
                   className="settings-input"
                   type="number"
-                  min={3}
+                  min={0}
                   max={60}
-                  value={pollIntervalSec}
+                  value={pollDraft}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
-                    if (!isNaN(v)) handlePollIntervalChange(v);
+                    if (!isNaN(v) && v >= 0 && v <= 60) setPollDraft(v);
                   }}
                   style={{ width: 70, textAlign: "center" }}
                 />
                 <span className="settings-poll-unit">seconds</span>
+                {pollDirty && (
+                  <button
+                    className="settings-save-btn"
+                    onClick={handleSavePollInterval}
+                    style={{ padding: "4px 12px", fontSize: 12 }}
+                  >
+                    Save
+                  </button>
+                )}
               </div>
+              {pollDraft === 0 && (
+                <p className="settings-section-desc" style={{ fontSize: 11, marginTop: 2 }}>
+                  Polling disabled — no automatic checks.
+                </p>
+              )}
 
               <button
                 className="settings-save-btn"
